@@ -17,6 +17,8 @@ float markerAX, markerAY, markerBX, markerBY;
 float markerA_angle, markerB_angle;
 boolean markerA_dragging, markerB_dragging;
 
+float[] markerA_pos_adjusted_for_tilt, markerB_pos_adjusted_for_tilt;
+
 static public void main(String args[]) {
   Frame frame = new Frame("testing");
   frame.setUndecorated(true);
@@ -44,9 +46,14 @@ void setup() {
 
   globe_tilt_ratio = 0.4;
   axis_rotation = 0.2;
+  
   globeX = 200;
   globeY = 580;
   globeR = 90;
+  
+  sunX = 1200;
+  sunY = 400;
+  sunR = 120;
 }
 
 void draw() {
@@ -54,17 +61,50 @@ void draw() {
   noFill();
 
   drawEarth();
-  //drawSun();
-  
+  drawSun();
+  //draw tmp screen guide
+  stroke(0, 0, 255);
+  graphics.setStroke(pen_hairline);
+  line(1368, 0, 1368, 768);
 }
 
-//void drawSun() {
-//  //draw  sun
-//  graphics.setStroke(pen_solid);
-//  ellipseMode(CORNER);
-//  stroke(255);  
-//  ellipse(sX - (globeR), globeY - (globeR), globeR * 2, globeR * 2);
-//}
+void drawSun() {
+  //draw  sun
+  graphics.setStroke(pen_solid);
+  fill(0);
+  noStroke();  
+  ellipse(sunX, sunY, sunR * 2, sunR * 2);
+  
+  pushMatrix();
+  translate(sunX, sunY);
+  rotate(axis_rotation);
+  
+  noFill();
+  //draw axis markers
+  stroke(0);
+  graphics.setStroke(pen_solid);
+  line(0, -sunR + 5, 0, -sunR-10);
+  line(0, sunR+1, 0, sunR+8);
+  
+  stroke(127);
+  //solar equator
+  graphics.setStroke(pen_dashed);
+  arc(0, 0, sunR * 2, (sunR * 2) * globe_tilt_ratio, 0, PI);
+  
+  //upper transit line hack
+  float sun_hack = 0.8;
+  arc(0, -70, (sunR * 2) * sun_hack, ((sunR * 2)*sun_hack) * (globe_tilt_ratio - 0.05), 0, PI);    
+  
+  //upper transit line hack
+ stroke(227);
+  float sun_hack2 = 1;
+  
+  arc(0, 50, (sunR * 2) * sun_hack2, ((sunR * 2)*sun_hack2) * (globe_tilt_ratio + 0.1), 0, PI);
+  
+  popMatrix();
+  
+  
+}
 
 void drawEarth() {
   markerA_angle = angleFromCircleCentre(globeX, globeY);
@@ -83,8 +123,8 @@ void drawEarth() {
   markerAX = markerA_pos[0];
   markerAY = markerA_pos[1];
   
-  float[] markerA_pos_adjusted_for_tilt = plotMarkerPos(globeX, globeY, globeR, markerA_angle - axis_rotation);
-  float[] markerB_pos_adjusted_for_tilt = plotMarkerPos(globeX, globeY, globeR, markerB_angle - axis_rotation);
+  markerA_pos_adjusted_for_tilt = plotMarkerPos(globeX, globeY, globeR, markerA_angle - axis_rotation);
+  markerB_pos_adjusted_for_tilt = plotMarkerPos(globeX, globeY, globeR, markerB_angle - axis_rotation);
   
   pushMatrix();
   translate(globeX, globeY);
@@ -116,11 +156,6 @@ void drawEarth() {
   arc(globeX - (markerB_pos_adjusted_for_tilt[0] - (chordLengthB/2)), markerB_pos_adjusted_for_tilt[1] - globeY, chordLengthB, chordLengthB * (globe_tilt_ratio + 0.01) , 0, PI);
  
   popMatrix();
-
-  //draw tmp screen guide
-  stroke(0, 0, 255);
-  graphics.setStroke(pen_hairline);
-  line(1368, 0, 1368, 768);
 
   //draw  planet
   graphics.setStroke(pen_solid);
