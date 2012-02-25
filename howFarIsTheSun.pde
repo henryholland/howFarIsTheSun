@@ -16,10 +16,11 @@ float axis_rotation;
 float globe_tilt_ratio;
 float globeX, globeY, globeR;
 float sunX, sunY, sunR;
+float venusX, venusY;
 
 float markerAX, markerAY, markerBX, markerBY;
 float markerA_angle, markerB_angle;
-boolean markerA_dragging, markerB_dragging;
+boolean markerA_dragging, markerB_dragging, venus_dragging;
 
 float[] markerA_pos_adjusted_for_tilt, markerB_pos_adjusted_for_tilt;
 
@@ -51,7 +52,8 @@ void setup() {
 
   //GUI vars
   markerA_dragging = markerB_dragging = false;
-
+  venus_dragging = true;
+  
   globe_tilt_ratio = 0.4;
   axis_rotation = 0;//0.2;
 
@@ -62,6 +64,9 @@ void setup() {
   sunX = 1200;
   sunY = 200;
   sunR = 120;
+  
+  venusX = 812;
+  venusY = 326;
 }
 
 void draw() {
@@ -74,6 +79,58 @@ void draw() {
   stroke(0, 0, 255);
   graphics.setStroke(pen_hairline);
   line(1368, 0, 1368, 768);
+}
+
+void drawVenus() {
+  //draw orbital path
+  stroke(100);
+  noFill();
+  graphics.setStroke(pen_dotted);
+  //arc(783, 0, 1152, 398, 0, PI);
+  
+  int orbitW = 2500;
+  int orbitH = 270;
+  
+  PVector orb_PtA = new PVector(sunX, sunY-(orbitH/2));
+  PVector orb_PtA_ctrl = new PVector(sunX-(orbitW/2), sunY-(orbitH/2));
+  PVector orb_PtB = new PVector(sunX, sunY+(orbitH/2));
+  PVector orb_PtB_ctrl = new PVector(sunX-(orbitW/2), sunY+(orbitH/2));
+  
+  PVector [] cps = {orb_PtA, orb_PtA_ctrl, orb_PtB_ctrl, orb_PtB};
+  PVector mouse_pos = new PVector(mouseX, mouseY);
+  
+  PVector venus_pos = ClosestPointOnBezier(cps, mouse_pos, 300);
+  noStroke();
+  fill(0, 0, 127, 100);
+  ellipse(venus_pos.x, venus_pos.y, 40, 40);
+  noFill();
+  
+  ellipse(sunX, sunY, orbitW, orbitH);
+  stroke(100, 0, 0);
+  //draw bezier version
+  bezier(orb_PtA.x, orb_PtA.y, orb_PtA_ctrl.x,orb_PtA_ctrl.y, orb_PtB_ctrl.x, orb_PtB_ctrl.y, orb_PtB.x, orb_PtB.y);
+
+  //draw planet
+  //graphics.setStroke(pen_solid);
+  ellipseMode(CENTER);
+  noStroke();
+  fill(0, 0, 0, 30);
+  ellipse(812, 326, 40, 40);
+
+  /*
+  float t = angleFromCircleCentre(sunX, sunY);
+
+  int a = 2500/2; // major axis of ellipse
+  int b = 270/2; // minor axis of ellipse
+
+  int x = (int)(sunX + a * cos(t));
+  
+  int y = (int)(sunY + b * sin(t));
+  
+  fill(0, 127, 0);
+  ellipse(x, y, 40, 40);
+  */
+  
 }
 
 void drawSun() {
@@ -128,11 +185,11 @@ void drawSun() {
   popMatrix();  
 
   //markers
-  drawMarkerHitArea(sunMarkerA_pos_start[0], sunMarkerA_pos_start[1], 8);
-  drawMarkerHitArea(sunMarkerB_pos_start[0], sunMarkerB_pos_start[1], 6);
+  drawMarkerHitArea(sunMarkerA_pos_start[0], sunMarkerA_pos_start[1], 4);
+  drawMarkerHitArea(sunMarkerB_pos_start[0], sunMarkerB_pos_start[1], 4);
 
-  drawMarkerHitArea(sunMarkerA_pos_end[0], sunMarkerA_pos_end[1], 8);
-  drawMarkerHitArea(sunMarkerB_pos_end[0], sunMarkerB_pos_end[1], 6);
+  drawMarkerHitArea(sunMarkerA_pos_end[0], sunMarkerA_pos_end[1], 4);
+  drawMarkerHitArea(sunMarkerB_pos_end[0], sunMarkerB_pos_end[1], 4);
 
   //PoV lines...
   stroke(200);
@@ -143,32 +200,6 @@ void drawSun() {
 
   line(markerAX, markerAY, sunMarkerA_pos_end[0], sunMarkerA_pos_end[1]);
   line(markerBX, markerBY, sunMarkerB_pos_end[0], sunMarkerB_pos_end[1]);
-}
-
-void drawVenus() {
-  //draw orbital path
-  stroke(100);
-  noFill();
-  graphics.setStroke(pen_dotted);
-  //arc(783, 0, 1152, 398, 0, PI);
-  ellipse(sunX, sunY, 2500, 270);
-
-  //draw planet
-  graphics.setStroke(pen_solid);
-  ellipseMode(CENTER);
-  stroke(0);
-  fill(0);
-  ellipse(812, 326, 40, 40);
-
-  float t = angleFromCircleCentre(sunX, sunY);
-
-  int a = 2500/2; // major axis of ellipse
-  int b = 270/2; // minor axis of ellipse
-
-  int x = (int)(sunX + a * cos(t));
-  int y = (int)(sunY + b * sin(t));
-  fill(0, 127, 0);
-  ellipse(x, y, 40, 40);
 }
 
 void drawEarth() {
@@ -272,4 +303,43 @@ boolean overCircle(int x, int y, int diameter) {
     return false;
   }
 }
+
+/**
+ClosestPointOnCurve, Dave Bollinger, circa 2006, revised 9/2010
+numerical approximation by linearly subdividing the curves into a given number of segments
+*/
+
+
+/**
+ * Returns the closest point on a bezier curve relative to a search location.
+ * This is only an approximation, by subdividing the curve a given number of times.
+ * More subdivisions gives a better approximation but takes longer, and vice versa.
+ * No concern is given to handling multiple equidistant points on the curve - the
+ *   first encountered equidistant point on the subdivided curve is returned.
+ *
+ * @param cps    array of four PVectors that define the control points of the curve
+ * @param pt     the search-from location
+ * @param ndivs  how many segments to subdivide the curve into
+ * @returns      PVector containing closest subdivided point on curve
+ */
+PVector ClosestPointOnBezier(PVector [] cps, PVector pt, int ndivs) {
+  PVector result = new PVector();
+  float bestDistanceSquared = 0;
+  float bestT = 0;
+  for (int i=0; i<=ndivs; i++) {
+    float t = (float)(i) / (float)(ndivs);
+    float x = bezierPoint(cps[0].x,cps[1].x,cps[2].x,cps[3].x,t);
+    float y = bezierPoint(cps[0].y,cps[1].y,cps[2].y,cps[3].y,t);
+    float dx = x - pt.x;
+    float dy = y - pt.y;
+    float dissq = dx*dx+dy*dy;
+    if (i==0 || dissq < bestDistanceSquared) {
+      bestDistanceSquared = dissq;
+      bestT = t;
+      result.set(x,y,0);
+    }
+  }
+  return result;
+}
+
 
