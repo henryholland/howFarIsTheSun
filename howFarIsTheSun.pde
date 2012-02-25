@@ -66,11 +66,10 @@ void setup() {
 
 void draw() {
   background(127); 
-  noFill();
-
   drawEarth();
   drawSun();
   drawVenus();
+
   //draw tmp screen guide
   stroke(0, 0, 255);
   graphics.setStroke(pen_hairline);
@@ -78,7 +77,7 @@ void draw() {
 }
 
 void drawSun() {
-
+  //draw bg
   graphics.setStroke(pen_solid);
   fill(255);
   noStroke();  
@@ -88,15 +87,12 @@ void drawSun() {
   translate(sunX, sunY);
   rotate(axis_rotation);
 
-  //float[] sunMarkerPos = plotMarkerPos(sunX, sunY, sunR, (markerA_angle/3) + PI);
-  
   float[] sunMarkerA_pos_start = plotMarkerPos(sunX, sunY, sunR, ((markerA_angle/3) - axis_rotation) + PI );
   float[] sunMarkerA_pos_end = plotMarkerPos(sunX, sunY, sunR, (-(markerA_angle/3) - axis_rotation) );
-  
+
   float[] sunMarkerB_pos_start = plotMarkerPos(sunX, sunY, sunR, ((markerB_angle/3) - axis_rotation) + PI );
   float[] sunMarkerB_pos_end = plotMarkerPos(sunX, sunY, sunR, (-(markerB_angle/3) - axis_rotation)  );
 
-  
   //draw axis markers
   noFill();
   stroke(255);
@@ -104,48 +100,47 @@ void drawSun() {
   line(0, -sunR + 5, 0, -sunR-10);
   line(0, sunR+1, 0, sunR+8);
 
-  
   //draw transit lines
   stroke(127);
   graphics.setStroke(pen_dashed);
-  
-  //A track
-  float sun_hack = 0.8;
-  arc(0, -70, (sunR * 2) * sun_hack, ((sunR * 2)*sun_hack) * (globe_tilt_ratio - 0.05), 0, PI);    
-
-  //B track
-  float sun_hack2 = 1;
-
-  //arc(0, 32, (sunR * 2) * sun_hack2, ((sunR * 2)*sun_hack2) * (globe_tilt_ratio + 0.2), 0+0.8, PI-0.8);
-  //println(sunMarkerPos[1]- sunY);
 
   float chordLengthA = abs(calcChordLength(sunR, ((PI/2) + axis_rotation) - ((markerA_angle/3) + PI)));
-  float chordLengthB = abs(calcChordLength(sunR, ((PI/2) + axis_rotation) - ((markerA_angle/3) + PI)));
-  //line(sunMarkerA_pos_start[0] - sunX, sunMarkerA_pos_start[1] - sunY, (sunMarkerA_pos_start[0] - sunX)+ chordLengthA, sunMarkerA_pos_start[1] - sunY);
-  //arc(globeX - (markerA_pos_adjusted_for_tilt[0] - (chordLengthA/2)), markerA_pos_adjusted_for_tilt[1] - globeY, chordLengthA, chordLengthA * globe_tilt_ratio, 0, PI);
+  float chordLengthB = abs(calcChordLength(sunR, ((PI/2) + axis_rotation) - ((markerB_angle/3) + PI)));
 
+  //A track
+  float transitA_l_X = sunMarkerB_pos_start[0] - (sunX - (chordLengthB/2));
+  float transitA_l_Y = sunMarkerB_pos_start[1] - sunY; 
+  float transitA_l_w = chordLengthB;
+  float transitA_l_h = chordLengthB * (globe_tilt_ratio - 0.2);
+  arc(transitA_l_X, transitA_l_Y, transitA_l_w, transitA_l_h, 0, PI);
+  //  float sun_hack = 0.8;
+  //  arc(0, -70, (sunR * 2) * sun_hack, ((sunR * 2)*sun_hack) * (globe_tilt_ratio - 0.05), 0, PI);    
+
+  //B track
   float transit_l_X = sunMarkerA_pos_start[0] - (sunX - (chordLengthA/2));
   float transit_l_Y = sunMarkerA_pos_start[1] - sunY; 
-  float transit_l_w = chordLengthA;//(sunR * 2) * sun_hack2;
-  float transit_l_h = chordLengthA * (globe_tilt_ratio - 0.1); //((sunR * 2) * sun_hack2) * (globe_tilt_ratio + 0.2);
-
-  //arc(transit_l_X, transit_l_Y, transit_l_w, transit_l_h, 0 + 0.5, PI - 0.5);
+  float transit_l_w = chordLengthA;
+  float transit_l_h = chordLengthA * (globe_tilt_ratio - 0.2);
   arc(transit_l_X, transit_l_Y, transit_l_w, transit_l_h, 0, PI);
+
+  ellipse(transit_l_X, transit_l_Y, transit_l_w, transit_l_h);
 
   popMatrix();  
 
+  //markers
   drawMarkerHitArea(sunMarkerA_pos_start[0], sunMarkerA_pos_start[1], 8);
   drawMarkerHitArea(sunMarkerB_pos_start[0], sunMarkerB_pos_start[1], 6);
-  
+
   drawMarkerHitArea(sunMarkerA_pos_end[0], sunMarkerA_pos_end[1], 8);
   drawMarkerHitArea(sunMarkerB_pos_end[0], sunMarkerB_pos_end[1], 6);
-  
+
+  //PoV lines...
   stroke(200);
   graphics.setStroke(pen_hairline);
-  
+
   line(markerAX, markerAY, sunMarkerA_pos_start[0], sunMarkerA_pos_start[1]);
   line(markerBX, markerBY, sunMarkerB_pos_start[0], sunMarkerB_pos_start[1]);
-  
+
   line(markerAX, markerAY, sunMarkerA_pos_end[0], sunMarkerA_pos_end[1]);
   line(markerBX, markerBY, sunMarkerB_pos_end[0], sunMarkerB_pos_end[1]);
 }
@@ -157,13 +152,23 @@ void drawVenus() {
   graphics.setStroke(pen_dotted);
   //arc(783, 0, 1152, 398, 0, PI);
   ellipse(sunX, sunY, 2500, 270);
-  
+
   //draw planet
   graphics.setStroke(pen_solid);
   ellipseMode(CENTER);
   stroke(0);
   fill(0);
-  //ellipse(812, 326, 40, 40);
+  ellipse(812, 326, 40, 40);
+
+  float t = angleFromCircleCentre(sunX, sunY);
+
+  int a = 2500/2; // major axis of ellipse
+  int b = 270/2; // minor axis of ellipse
+
+  int x = (int)(sunX + a * cos(t));
+  int y = (int)(sunY + b * sin(t));
+  fill(0, 127, 0);
+  ellipse(x, y, 40, 40);
 }
 
 void drawEarth() {
@@ -196,6 +201,7 @@ void drawEarth() {
 
   //draw axis markers
   stroke(255); 
+  noFill();
   graphics.setStroke(pen_solid);
   line(0, -globeR + 5, 0, -globeR-6);
   line(0, globeR+1, 0, globeR+6);
