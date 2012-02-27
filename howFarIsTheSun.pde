@@ -219,8 +219,6 @@ void drawSun() {
   //  float transit_l_Y = sunMarkerA_pos_start[1] - sunY; 
   //  float transit_l_w = chordLengthA;
   //  float transit_l_h = chordLengthA * (globe_tilt_ratio - 0.2);
-  //  stroke(127,127,0); 
-  //  //arc(transit_l_X, transit_l_Y, transit_l_w, transit_l_h, 0, PI);
   //
   //  //ellipse(transit_l_X, transit_l_Y, transit_l_w, transit_l_h);
   PVector tB_srt = new PVector(sunMarkerA_pos_start[0] - (sunX ), sunMarkerA_pos_start[1] - sunY);
