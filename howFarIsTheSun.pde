@@ -18,10 +18,11 @@ float globeX, globeY, globeR;
 float sunX, sunY, sunR;
 float venusX, venusY;
 
+
 float markerAX, markerAY, markerBX, markerBY;
 float markerA_angle, markerB_angle;
 
-PVector start_intersection, end_intersection;
+PVector start_intersection, end_intersection, trackA_start, trackB_start, rough_transA, rough_transB;
 
 boolean markerA_dragging, markerB_dragging, venus_dragging;
 
@@ -72,7 +73,9 @@ void setup() {
   venusY = 326;
   
   start_intersection = new PVector();
-  end_intersection = new PVector();  
+  end_intersection = new PVector();
+  trackA_start = new PVector();
+  trackB_start = new PVector();
 }
 
 void draw() {
@@ -98,7 +101,7 @@ void drawVenus() {
   
   PVector [] cps = {orb_PtA, orb_PtA_ctrl, orb_PtB_ctrl, orb_PtB};
   PVector mouse_pos = new PVector(mouseX, mouseY);
-  PVector venus_pos = ClosestPointOnBezier(cps, mouse_pos, 400);
+  PVector venus_pos = ClosestPointOnBezier(cps, mouse_pos, 800);
   
   noStroke();
   fill(0, 0, 127, 100);
@@ -110,7 +113,16 @@ void drawVenus() {
     fill(0, 0, 127, 255);
   }
   
-  ellipse(venus_pos.x, venus_pos.y, 40, 40);
+  if (transiting) {
+    float total_length = dist(start_intersection.x, start_intersection.y, end_intersection.x, end_intersection.y);
+    float curr_length = dist(start_intersection.x, start_intersection.y, venus_pos.x, venus_pos.y);
+    float percent = curr_length/total_length;
+    rough_transA.x = trackA_start.x + (chordLengthA*percent);
+    rough_transA.y = trackA_start.y;
+    ellipse(venus_pos.x, venus_pos.y, 40, 40);
+  }
+  
+  ellipse(rough_transA.x, rough_transA.y, 10, 10);
   noFill();
   
   //ellipse(sunX, sunY, orbitW, orbitH);
@@ -136,10 +148,17 @@ void drawSun() {
   rotate(axis_rotation);
 
   float[] sunMarkerA_pos_start = plotMarkerPos(sunX, sunY, sunR, ((markerA_angle/3) - axis_rotation) + PI );
-  float[] sunMarkerA_pos_end = plotMarkerPos(sunX, sunY, sunR, (-(markerA_angle/3) - axis_rotation) );
+  float[] sunMarkerA_pos_end = plotMarkerPos(sunX, sunY, sunR, (-(markerA_angle/3) - axis_rotation) );  
 
   float[] sunMarkerB_pos_start = plotMarkerPos(sunX, sunY, sunR, ((markerB_angle/3) - axis_rotation) + PI );
   float[] sunMarkerB_pos_end = plotMarkerPos(sunX, sunY, sunR, (-(markerB_angle/3) - axis_rotation)  );
+
+  //
+  trackA_start.x = sunMarkerA_pos_start[0];
+  trackA_start.y = sunMarkerA_pos_start[1];
+  trackB_start.x = sunMarkerB_pos_start[0];
+  trackB_start.y = sunMarkerB_pos_start[1];
+
 
   //draw axis markers
   noFill();
@@ -152,6 +171,8 @@ void drawSun() {
   stroke(127);
   graphics.setStroke(pen_dashed);
 
+
+  //TO DO - these need to be available to other functions... global probably..
   float chordLengthA = abs(calcChordLength(sunR, ((PI/2) + axis_rotation) - ((markerA_angle/3) + PI)));
   float chordLengthB = abs(calcChordLength(sunR, ((PI/2) + axis_rotation) - ((markerB_angle/3) + PI)));
 
