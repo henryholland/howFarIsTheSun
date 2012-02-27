@@ -22,11 +22,21 @@ float venusX, venusY;
 float markerAX, markerAY, markerBX, markerBY;
 float markerA_angle, markerB_angle;
 
+float chordLengthA, chordLengthB;
+
 PVector start_intersection, end_intersection, trackA_start, trackB_start, rough_transA, rough_transB;
+
+PVector [] tA_bezier_cps = {
+  null, null, null, null
+};
+PVector [] tB_bezier_cps = {
+  null, null, null, null
+};
 
 boolean markerA_dragging, markerB_dragging, venus_dragging;
 
 float[] markerA_pos_adjusted_for_tilt, markerB_pos_adjusted_for_tilt;
+
 
 static public void main(String args[]) {
   Frame frame = new Frame("testing");
@@ -57,7 +67,7 @@ void setup() {
   //GUI vars
   markerA_dragging = markerB_dragging = false;
   venus_dragging = true;
-  
+
   globe_tilt_ratio = 0.4;
   axis_rotation = 0;//0.2;
 
@@ -68,14 +78,16 @@ void setup() {
   sunX = 1200;
   sunY = 200;
   sunR = 120;
-  
+
   venusX = 812;
   venusY = 326;
-  
+
   start_intersection = new PVector();
   end_intersection = new PVector();
   trackA_start = new PVector();
   trackB_start = new PVector();
+  rough_transA = new PVector();
+  rough_transB = new PVector();
 }
 
 void draw() {
@@ -93,38 +105,46 @@ void draw() {
 void drawVenus() {
   int orbitW = 2500;
   int orbitH = 270;
-  
+
   PVector orb_PtA = new PVector(sunX, sunY-(orbitH/2) + 30);
   PVector orb_PtA_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY-(orbitH/2) + 30);
   PVector orb_PtB = new PVector(sunX, sunY+(orbitH/2)- 5);
   PVector orb_PtB_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY+(orbitH/2)-10);
-  
-  PVector [] cps = {orb_PtA, orb_PtA_ctrl, orb_PtB_ctrl, orb_PtB};
+
+  PVector [] cps = {
+    orb_PtA, orb_PtA_ctrl, orb_PtB_ctrl, orb_PtB
+  };
   PVector mouse_pos = new PVector(mouseX, mouseY);
   PVector venus_pos = ClosestPointOnBezier(cps, mouse_pos, 800);
-  
+
   noStroke();
+
   fill(0, 0, 127, 100);
-  
+
   boolean transiting = false;
-  
+
   if ((venus_pos.x > start_intersection.x) && (venus_pos.x < end_intersection.x)) {
     transiting = true;
     fill(0, 0, 127, 255);
   }
-  
+
   if (transiting) {
     float total_length = dist(start_intersection.x, start_intersection.y, end_intersection.x, end_intersection.y);
     float curr_length = dist(start_intersection.x, start_intersection.y, venus_pos.x, venus_pos.y);
     float percent = curr_length/total_length;
-    rough_transA.x = trackA_start.x + (chordLengthA*percent);
-    rough_transA.y = trackA_start.y;
-    ellipse(venus_pos.x, venus_pos.y, 40, 40);
+    rough_transB.x = sunX + trackB_start.x + (chordLengthB*percent);
+    rough_transB.y = sunY + trackB_start.y;
+    ellipse(rough_transB.x, rough_transB.y, 15, 15);
+    PVector trackBPoint = ClosestPointOnBezier(tA_bezier_cps, rough_transB, 200);
+    fill(0, 127, 0, 255);
+    ellipse(trackBPoint.x + sunX, trackBPoint.y + sunY, 5, 5);
   }
-  
-  ellipse(rough_transA.x, rough_transA.y, 10, 10);
+
+  ellipse(venus_pos.x, venus_pos.y, 40, 40);
+
+  //ellipse(rough_transA.x, rough_transA.y, 10, 10);
   noFill();
-  
+
   //ellipse(sunX, sunY, orbitW, orbitH);
   stroke(100, 0, 0);
 
@@ -132,8 +152,7 @@ void drawVenus() {
   stroke(100);
   noFill();
   graphics.setStroke(pen_dotted);
-  bezier(orb_PtA.x, orb_PtA.y, orb_PtA_ctrl.x,orb_PtA_ctrl.y, orb_PtB_ctrl.x, orb_PtB_ctrl.y, orb_PtB.x, orb_PtB.y);
-
+  bezier(orb_PtA.x, orb_PtA.y, orb_PtA_ctrl.x, orb_PtA_ctrl.y, orb_PtB_ctrl.x, orb_PtB_ctrl.y, orb_PtB.x, orb_PtB.y);
 }
 
 void drawSun() {
@@ -159,7 +178,6 @@ void drawSun() {
   trackB_start.x = sunMarkerB_pos_start[0];
   trackB_start.y = sunMarkerB_pos_start[1];
 
-
   //draw axis markers
   noFill();
   stroke(255);
@@ -171,55 +189,67 @@ void drawSun() {
   stroke(127);
   graphics.setStroke(pen_dashed);
 
+  chordLengthB = abs(calcChordLength(sunR, ((PI/2) + axis_rotation) - ((markerA_angle/3) + PI)));
+  chordLengthA = abs(calcChordLength(sunR, ((PI/2) + axis_rotation) - ((markerB_angle/3) + PI)));
 
-  //TO DO - these need to be available to other functions... global probably..
-  float chordLengthA = abs(calcChordLength(sunR, ((PI/2) + axis_rotation) - ((markerA_angle/3) + PI)));
-  float chordLengthB = abs(calcChordLength(sunR, ((PI/2) + axis_rotation) - ((markerB_angle/3) + PI)));
-
-  //A track
+  //A track (lower)
   PVector tA_srt = new PVector(sunMarkerB_pos_start[0] - (sunX ), sunMarkerB_pos_start[1] - sunY);
-  PVector tA_srt_ctrl = new PVector(tA_srt.x, tA_srt.y + (chordLengthB * (globe_tilt_ratio - 0.2)));
-  PVector tA_end_crtl = new PVector(tA_srt.x + chordLengthB, tA_srt.y + (chordLengthB * (globe_tilt_ratio - 0.2)));
-  PVector tA_end = new PVector(tA_srt.x + chordLengthB, tA_srt.y);
-  
-  stroke(0,255,0);
-  bezier(tA_srt.x, tA_srt.y, tA_srt_ctrl.x, tA_srt_ctrl.y, tA_end_crtl.x, tA_end_crtl.y, tA_end.x, tA_end.y);
-   
-//  float transitA_l_X = sunMarkerB_pos_start[0] - (sunX - (chordLengthB/2));
-//  float transitA_l_Y = sunMarkerB_pos_start[1] - sunY; 
-//  float transitA_l_w = chordLengthB;
-//  float transitA_l_h = chordLengthB * (globe_tilt_ratio - 0.2);
-//  stroke(0,255,0);
-//  arc(transitA_l_X, transitA_l_Y, transitA_l_w, transitA_l_h, 0, PI);
-     
+  PVector tA_srt_ctrl = new PVector(tA_srt.x, tA_srt.y + (chordLengthA * (globe_tilt_ratio - 0.2)));
+  PVector tA_end_ctrl = new PVector(tA_srt.x + chordLengthA, tA_srt.y + (chordLengthA * (globe_tilt_ratio - 0.2)));
+  PVector tA_end = new PVector(tA_srt.x + chordLengthA, tA_srt.y);
 
-  //B track
-  float transit_l_X = sunMarkerA_pos_start[0] - (sunX - (chordLengthA/2));
-  float transit_l_Y = sunMarkerA_pos_start[1] - sunY; 
-  float transit_l_w = chordLengthA;
-  float transit_l_h = chordLengthA * (globe_tilt_ratio - 0.2);
-  stroke(127,127,0); 
-  arc(transit_l_X, transit_l_Y, transit_l_w, transit_l_h, 0, PI);
+  stroke(0, 255, 0);
+  bezier(tA_srt.x, tA_srt.y, tA_srt_ctrl.x, tA_srt_ctrl.y, tA_end_ctrl.x, tA_end_ctrl.y, tA_end.x, tA_end.y);
 
-  ellipse(transit_l_X, transit_l_Y, transit_l_w, transit_l_h);
+  tA_bezier_cps [0] = tA_srt; 
+  tA_bezier_cps [1] = tA_srt_ctrl;
+  tA_bezier_cps [2] = tA_end_ctrl;
+  tA_bezier_cps [3] = tA_end ;
 
+  //  float transitA_l_X = sunMarkerB_pos_start[0] - (sunX - (chordLengthB/2));
+  //  float transitA_l_Y = sunMarkerB_pos_start[1] - sunY; 
+  //  float transitA_l_w = chordLengthB;
+  //  float transitA_l_h = chordLengthB * (globe_tilt_ratio - 0.2);
+  //  stroke(0,255,0);
+  //  arc(transitA_l_X, transitA_l_Y, transitA_l_w, transitA_l_h, 0, PI);
 
+  //B track (higher)
+
+  //  float transit_l_X = sunMarkerA_pos_start[0] - (sunX - (chordLengthA/2));
+  //  float transit_l_Y = sunMarkerA_pos_start[1] - sunY; 
+  //  float transit_l_w = chordLengthA;
+  //  float transit_l_h = chordLengthA * (globe_tilt_ratio - 0.2);
+  //  stroke(127,127,0); 
+  //  //arc(transit_l_X, transit_l_Y, transit_l_w, transit_l_h, 0, PI);
+  //
+  //  //ellipse(transit_l_X, transit_l_Y, transit_l_w, transit_l_h);
+  PVector tB_srt = new PVector(sunMarkerA_pos_start[0] - (sunX ), sunMarkerA_pos_start[1] - sunY);
+  PVector tB_srt_ctrl = new PVector(tB_srt.x, tB_srt.y + (chordLengthB * (globe_tilt_ratio - 0.2)));
+  PVector tB_end_ctrl = new PVector(tB_srt.x + chordLengthB, tB_srt.y + (chordLengthB * (globe_tilt_ratio - 0.2)));
+  PVector tB_end = new PVector(tB_srt.x + chordLengthB, tB_srt.y);
+
+  stroke(127, 127, 127);
+  bezier(tB_srt.x, tB_srt.y, tB_srt_ctrl.x, tB_srt_ctrl.y, tB_end_ctrl.x, tB_end_ctrl.y, tB_end.x, tB_end.y);
+
+  tB_bezier_cps [0] = tB_srt; 
+  tB_bezier_cps [1] = tB_srt_ctrl;
+  tB_bezier_cps [2] = tB_end_ctrl;
+  tB_bezier_cps [3] = tB_end ;
   popMatrix();  
 
   // find intersections
   //put a marker where markerA's view on tA_srt is and 
   start_intersection = lineIntersection(markerAX, markerAY, sunMarkerA_pos_start[0], sunMarkerA_pos_start[1], 
-                                                markerBX, markerBY, sunMarkerB_pos_start[0], sunMarkerB_pos_start[1]);
+  markerBX, markerBY, sunMarkerB_pos_start[0], sunMarkerB_pos_start[1]);
   end_intersection = lineIntersection(markerAX, markerAY, sunMarkerA_pos_end[0], sunMarkerA_pos_end[1], 
-                                                markerBX, markerBY, sunMarkerB_pos_end[0], sunMarkerB_pos_end[1]);
-
+  markerBX, markerBY, sunMarkerB_pos_end[0], sunMarkerB_pos_end[1]);
 
   drawMarker(start_intersection.x, start_intersection.y, 4);
   drawMarker(end_intersection.x, end_intersection.y, 4);
-  
-//  PVector [] cps = {tA_srt, tA_srt_ctrl, tA_end_crtl, tA_end};
-//  PVector mouse_pos = new PVector(mouseX, mouseY);
-//  PVector venus_pos = ClosestPointOnBezier(cps, mouse_pos, 300);
+
+  //PVector [] cps = {tA_srt, tA_srt_ctrl, tA_end_crtl, tA_end};
+  //PVector mouse_pos = new PVector(mouseX, mouseY);
+  //PVector venus_pos = ClosestPointOnBezier(cps, mouse_pos, 300);
 
   //markers
   drawMarker(sunMarkerA_pos_start[0], sunMarkerA_pos_start[1], 4);
@@ -343,9 +373,9 @@ boolean overCircle(int x, int y, int diameter) {
 }
 
 /**
-ClosestPointOnCurve, Dave Bollinger, circa 2006, revised 9/2010
-numerical approximation by linearly subdividing the curves into a given number of segments
-*/
+ ClosestPointOnCurve, Dave Bollinger, circa 2006, revised 9/2010
+ numerical approximation by linearly subdividing the curves into a given number of segments
+ */
 
 
 /**
@@ -366,15 +396,15 @@ PVector ClosestPointOnBezier(PVector [] cps, PVector pt, int ndivs) {
   float bestT = 0;
   for (int i=0; i<=ndivs; i++) {
     float t = (float)(i) / (float)(ndivs);
-    float x = bezierPoint(cps[0].x,cps[1].x,cps[2].x,cps[3].x,t);
-    float y = bezierPoint(cps[0].y,cps[1].y,cps[2].y,cps[3].y,t);
+    float x = bezierPoint(cps[0].x, cps[1].x, cps[2].x, cps[3].x, t);
+    float y = bezierPoint(cps[0].y, cps[1].y, cps[2].y, cps[3].y, t);
     float dx = x - pt.x;
     float dy = y - pt.y;
     float dissq = dx*dx+dy*dy;
     if (i==0 || dissq < bestDistanceSquared) {
       bestDistanceSquared = dissq;
       bestT = t;
-      result.set(x,y,0);
+      result.set(x, y, 0);
     }
   }
   return result;
@@ -387,14 +417,13 @@ PVector lineIntersection(float x1, float y1, float x2, float y2, float x3, float
   float dx = x4 - x3;
   float dy = y4 - y3; 
   float b_dot_d_perp = bx*dy - by*dx;
-  if(b_dot_d_perp == 0) {
+  if (b_dot_d_perp == 0) {
     return null;
   }
   float cx = x3-x1; 
   float cy = y3-y1;
   float t = (cx*dy - cy*dx) / b_dot_d_perp; 
- 
-  return new PVector(x1+t*bx, y1+t*by); 
-}
 
+  return new PVector(x1+t*bx, y1+t*by);
+}
 
