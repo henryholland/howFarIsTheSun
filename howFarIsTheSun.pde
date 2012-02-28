@@ -133,7 +133,7 @@ void draw() {
 void mousePressed() {
   if ( overCircle(int(venus_pos.x), int(venus_pos.y), int(venusDia))) {
     venusDragging = true; 
-    //venusAccelleration = 0;
+    
   }
 }
 
@@ -161,8 +161,10 @@ void drawVenus() {
   PVector [] cps = {
     orb_PtA, orb_PtA_ctrl, orb_PtB_ctrl, orb_PtB
   };
-
+  text((float)venusAccelleration, 10, 50);
+  
   if (venusDragging) {
+    text("dragging", 10, 100);
     venus_pos = closestPointOnBezier(cps, mouse_pos, 800);
     curr_venusT = venus_pos.z;
     venusAccelleration = ((curr_venusT - prev_venusT)  ) % venusAccellerationMax;
@@ -171,17 +173,18 @@ void drawVenus() {
   else {
 
     curr_venusT = curr_venusT+venusAccelleration;
-
-    if (Math.pow(venusAccelleration, 2) > .000001) {
-      venusAccelleration = venusAccelleration* venusFriction;
+    if (Math.abs(venusAccelleration) > .0001) {
+      venusAccelleration *= venusFriction;
+      text("rolling", 10, 75);
     } 
     else {
       venusAccelleration = 0;
+      text("stopped", 10, 75);
     }
   }
 
   fill(0);
-  text((float)curr_venusT, 10, 50);
+
 
   venus_pos.x = bezierPoint(orb_PtA.x, orb_PtA_ctrl.x, orb_PtB_ctrl.x, orb_PtB.x, curr_venusT);
   venus_pos.y = bezierPoint(orb_PtA.y, orb_PtA_ctrl.y, orb_PtB_ctrl.y, orb_PtB.y, curr_venusT);
