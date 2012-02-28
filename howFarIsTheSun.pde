@@ -40,7 +40,7 @@ PVector [] tB_bezier_cps = {
   null, null, null, null
 };
 
-boolean markerA_dragging, markerB_dragging, venus_dragging;
+boolean markerA_dragging, markerB_dragging, venus_dragging, orbitLeft;
 
 float[] markerA_pos_adjusted_for_tilt, markerB_pos_adjusted_for_tilt;
 
@@ -52,14 +52,14 @@ static public void main(String args[]) {
   PApplet applet = new howFarIsTheSun();
   frame.add(applet);
 
-  frame.setBounds(0, 0, 2048, 768); 
+  frame.setBounds(0, 0, 2732, 768); 
   frame.setVisible(true);
 
   applet.init();
 }
 
 void setup() {
-  size(2048, 768);  
+  size(2732, 768);  
   frameRate(60);
   smooth();
 
@@ -74,9 +74,9 @@ void setup() {
   pen_hairline = new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_MITER);
 
   //GUI vars
-
   textFont(font, 18);
-
+  
+  orbitLeft = false;
   markerA_dragging = markerB_dragging = false;
   venus_dragging = true;
 
@@ -95,23 +95,23 @@ void setup() {
   venusY = 326;
   venusDia = 30;
 
-  curr_venusT = 0;
+  curr_venusT = 1;
   venusAccelleration = 0;
   venusAccellerationMax = 5;
-  venusFriction = 0.95;
+  venusFriction = 0.9;
 
-  observerA = new PVector();
+  observerA = new PVector(); 
   observerB = new PVector();
 
-  start_intersection = new PVector();
+  start_intersection = new PVector(); 
   end_intersection = new PVector();
 
-  trackA_start = new PVector();
+  trackA_start = new PVector(); 
   trackB_start = new PVector();
-  trackA_end = new PVector();
+  trackA_end = new PVector();   
   trackB_end = new PVector();
 
-  rough_transA = new PVector();
+  rough_transA = new PVector(); 
   rough_transB = new PVector();
 
   venus_pos = new PVector();
@@ -123,6 +123,8 @@ void draw() {
   drawEarth();
   drawSun();
   drawVenus();
+  
+  drawOther();
 
   //draw tmp screen guide
   stroke(0, 0, 255);
@@ -130,10 +132,13 @@ void draw() {
   line(1368, 0, 1368, 768);
 }
 
+void drawOther() {
+  rect(1368, 0, 1368, 768);
+}
+
 void mousePressed() {
   if ( overCircle(int(venus_pos.x), int(venus_pos.y), int(venusDia))) {
-    venusDragging = true; 
-    
+    venusDragging = true;
   }
 }
 
@@ -147,31 +152,57 @@ void drawVenus() {
   int orbitW = 2000;
   int orbitH = 470;
 
+  //left half of the orbit..
   PVector orb_PtA = new PVector(sunX, sunY-(orbitH/2) + 30);
   PVector orb_PtA_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY-(orbitH/2) + 30);
   PVector orb_PtB = new PVector(sunX, sunY+(orbitH/2)- 5);
   PVector orb_PtB_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY+(orbitH/2)-10 );
 
-  PVector orb2_PtA = new PVector(sunX, sunY-(orbitH/2) + 30);
-  PVector orb2_PtA_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY-(orbitH/2) + 30);
-  PVector orb2_PtB = new PVector(sunX, sunY+(orbitH/2)- 5);
-  PVector orb2_PtB_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY+(orbitH/2)-10 );
+  //right half of the orbit..
+  PVector orb2_PtA = new PVector(sunX, sunY - (orbitH/2) + 30);
+  PVector orb2_PtA_ctrl = new PVector(sunX + (orbitW/2) + 200, sunY-(orbitH/2) + 30);
+  PVector orb2_PtB = new PVector(sunX, sunY + (orbitH/2) - 5);
+  PVector orb2_PtB_ctrl = new PVector(sunX + (orbitW/2) + 200, sunY+(orbitH/2)-10 );
 
-  PVector mouse_pos = new PVector(mouseX, mouseY);
-  PVector [] cps = {
+  PVector [] cps_left = { 
     orb_PtA, orb_PtA_ctrl, orb_PtB_ctrl, orb_PtB
   };
+  PVector [] cps_right = { 
+    orb2_PtA, orb2_PtA_ctrl, orb2_PtB_ctrl, orb2_PtB
+  }; 
+  PVector [] cps;
+
+  PVector mouse_pos = new PVector(mouseX, mouseY);
+
+  if (orbitLeft) {
+    cps = cps_left;
+  } 
+  else {
+    cps = cps_right;
+  }
+
   text((float)venusAccelleration, 10, 50);
-  
+
   if (venusDragging) {
     text("dragging", 10, 100);
     venus_pos = closestPointOnBezier(cps, mouse_pos, 800);
     curr_venusT = venus_pos.z;
-    venusAccelleration = ((curr_venusT - prev_venusT)  ) % venusAccellerationMax;
+    //venusAccelleration = ((curr_venusT - prev_venusT) * 2  );// % venusAccellerationMax; grrrrr
     prev_venusT = curr_venusT;
+    
+    // super slingshot!!!
+    if (!orbitLeft && (curr_venusT <= 0.970)) {
+       venusDragging = false;
+       venusAccelleration = -0.12;
+    } 
+    
+    if (orbitLeft && (curr_venusT <= 0.09)) {
+       venusDragging = false;
+       venusAccelleration = -0.12;
+    }
+    
   } 
   else {
-
     curr_venusT = curr_venusT+venusAccelleration;
     if (Math.abs(venusAccelleration) > .0001) {
       venusAccelleration *= venusFriction;
@@ -183,15 +214,38 @@ void drawVenus() {
     }
   }
 
-  fill(0);
+  if (curr_venusT >= 1) {
+      venusAccelleration *= -1;
+      //prev_venusT = 1-prev_venusT;
+      if (orbitLeft) {
+        orbitLeft = false;
+      } else {
+        orbitLeft = true;
+      }
+    }
+    
+    if (curr_venusT <= 0) {
+      venusAccelleration *= -1;
+      if (orbitLeft) {
+      orbitLeft = false;
+      } else {
+        orbitLeft = true;
+      }
+    }
+  
+  text(curr_venusT, 10, 175);
+  
+  venus_pos.x = bezierPoint(cps[0].x, cps[1].x, cps[2].x, cps[3].x, curr_venusT);
+  venus_pos.y = bezierPoint(cps[0].y, cps[1].y, cps[2].y, cps[3].y, curr_venusT);
 
-
-  venus_pos.x = bezierPoint(orb_PtA.x, orb_PtA_ctrl.x, orb_PtB_ctrl.x, orb_PtB.x, curr_venusT);
-  venus_pos.y = bezierPoint(orb_PtA.y, orb_PtA_ctrl.y, orb_PtB_ctrl.y, orb_PtB.y, curr_venusT);
-
-  PVector plotA = plotTransitOnBezier( observerA, venus_pos, tA_bezier_cps);
-  PVector plotB = plotTransitOnBezier( observerB, venus_pos, tB_bezier_cps);
-
+  PVector plotA = null;
+  PVector plotB = null;
+  
+  if (orbitLeft) {
+    plotA = plotTransitOnBezier( observerA, venus_pos, tA_bezier_cps);
+    plotB = plotTransitOnBezier( observerB, venus_pos, tB_bezier_cps);
+  }
+  
   if (plotB != null) {
     stroke(255, 0, 255);
     line(venus_pos.x, venus_pos.y, plotB.x, plotB.y);
@@ -213,18 +267,12 @@ void drawVenus() {
   noStroke();
   ellipse(venus_pos.x, venus_pos.y, venusDia, venusDia);
 
-  // test the 't is stored in a PVector.z' hack...
-  /*fill(0, 127, 0, 255);
-   noStroke();
-   float x = bezierPoint(orb_PtA.x, orb_PtA_ctrl.x, orb_PtB_ctrl.x, orb_PtB.x, venus_pos.z);
-   float y = bezierPoint(orb_PtA.y, orb_PtA_ctrl.y, orb_PtB_ctrl.y, orb_PtB.y, venus_pos.z);
-   ellipse(x, y, venusDia, venusDia);*/
-
   //draw orbital path
   noFill();
   stroke(100);
   graphics.setStroke(pen_dotted);
   bezier(orb_PtA.x, orb_PtA.y, orb_PtA_ctrl.x, orb_PtA_ctrl.y, orb_PtB_ctrl.x, orb_PtB_ctrl.y, orb_PtB.x, orb_PtB.y);
+  bezier(orb2_PtA.x, orb2_PtA.y, orb2_PtA_ctrl.x, orb2_PtA_ctrl.y, orb2_PtB_ctrl.x, orb2_PtB_ctrl.y, orb2_PtB.x, orb2_PtB.y);
 }
 
 void drawSun() {
