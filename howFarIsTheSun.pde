@@ -1,6 +1,8 @@
 import java.awt.*;
 import java.awt.geom.*;
 
+PFont font;
+
 float[] dashes = {  
   4.0f, 8.0f, 4.0f, 8.0f
 };
@@ -16,8 +18,10 @@ float axis_rotation;
 float globe_tilt_ratio;
 float globeX, globeY, globeR;
 float sunX, sunY, sunR;
-float venusX, venusY;
+float venusX, venusY, venusDia;
+float curr_venusT, prev_venusT, venusAccelleration, venusAccellerationMax, venusFriction; 
 
+boolean venusDragging;
 
 float markerAX, markerAY, markerBX, markerBY;
 float markerA_angle, markerB_angle;
@@ -27,6 +31,7 @@ float chordLengthA, chordLengthB;
 PVector start_intersection, end_intersection, rough_transA, rough_transB;
 PVector trackA_start, trackB_start, trackA_end, trackB_end;
 PVector observerA, observerB; 
+PVector venus_pos;
 
 PVector [] tA_bezier_cps = {
   null, null, null, null
@@ -58,6 +63,8 @@ void setup() {
   frameRate(60);
   smooth();
 
+  font = createFont("Helvetica-Bold", 18);
+  textFont(font);
   graphics = ((PGraphicsJava2D) g).g2;
 
   //pens!
@@ -67,6 +74,9 @@ void setup() {
   pen_hairline = new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_MITER);
 
   //GUI vars
+
+  textFont(font, 18);
+
   markerA_dragging = markerB_dragging = false;
   venus_dragging = true;
 
@@ -75,7 +85,7 @@ void setup() {
 
   globeX = 200;
   globeY = 550;//580;
-  globeR = 70;
+  globeR = 80;
 
   sunX = 1100;
   sunY = 250;
@@ -83,6 +93,12 @@ void setup() {
 
   venusX = 812;
   venusY = 326;
+  venusDia = 30;
+
+  curr_venusT = 0;
+  venusAccelleration = 0;
+  venusAccellerationMax = 5;
+  venusFriction = 0.95;
 
   observerA = new PVector();
   observerB = new PVector();
@@ -97,10 +113,13 @@ void setup() {
 
   rough_transA = new PVector();
   rough_transB = new PVector();
+
+  venus_pos = new PVector();
 }
 
 void draw() {
-  background(127); 
+  background(127);
+
   drawEarth();
   drawSun();
   drawVenus();
@@ -111,6 +130,19 @@ void draw() {
   line(1368, 0, 1368, 768);
 }
 
+void mousePressed() {
+  if ( overCircle(int(venus_pos.x), int(venus_pos.y), int(venusDia))) {
+    venusDragging = true; 
+    //venusAccelleration = 0;
+  }
+}
+
+void mouseReleased() {
+  if (venusDragging) {
+    venusDragging = false;
+  }
+}
+
 void drawVenus() {
   int orbitW = 2000;
   int orbitH = 470;
@@ -118,52 +150,73 @@ void drawVenus() {
   PVector orb_PtA = new PVector(sunX, sunY-(orbitH/2) + 30);
   PVector orb_PtA_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY-(orbitH/2) + 30);
   PVector orb_PtB = new PVector(sunX, sunY+(orbitH/2)- 5);
-  PVector orb_PtB_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY+(orbitH/2)-10);
+  PVector orb_PtB_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY+(orbitH/2)-10 );
 
+  PVector orb2_PtA = new PVector(sunX, sunY-(orbitH/2) + 30);
+  PVector orb2_PtA_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY-(orbitH/2) + 30);
+  PVector orb2_PtB = new PVector(sunX, sunY+(orbitH/2)- 5);
+  PVector orb2_PtB_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY+(orbitH/2)-10 );
+
+  PVector mouse_pos = new PVector(mouseX, mouseY);
   PVector [] cps = {
     orb_PtA, orb_PtA_ctrl, orb_PtB_ctrl, orb_PtB
   };
 
-  PVector mouse_pos = new PVector(mouseX, mouseY);
-  PVector venus_pos = ClosestPointOnBezier(cps, mouse_pos, 800);
-  
-//  drawTransitObservation(PVector observerPos, PVector planetPos, 
+  if (venusDragging) {
+    venus_pos = closestPointOnBezier(cps, mouse_pos, 800);
+    curr_venusT = venus_pos.z;
+    venusAccelleration = ((curr_venusT - prev_venusT)  ) % venusAccellerationMax;
+    prev_venusT = curr_venusT;
+  } 
+  else {
 
-    float arc_rad = PVector.dist(observerB, trackB_end) + 200;
-    float ang = angleFromBetweenPVectors(venus_pos, observerB);
-    rough_transB = plotVectorOnCircle(observerB.x, observerB.y, arc_rad, ang);
+    curr_venusT = curr_venusT+venusAccelleration;
 
-    //drawMarker(rough_transB.x, rough_transB.y, 2);
-    stroke(0,127,0);
-    //line(markerBX, markerBY, -rough_transB.x, -rough_transB.y);
-
-    float[] lineAsArray = new float[] {
-      markerBX, markerBY, rough_transB.x, rough_transB.y
-    };
-
-    float[] bezierAsArray = new float[] {
-      tB_bezier_cps[0].x, tB_bezier_cps[0].y, tB_bezier_cps[1].x, tB_bezier_cps[1].y, tB_bezier_cps[2].x, tB_bezier_cps[2].y, tB_bezier_cps[3].x, tB_bezier_cps[3].y
-    };
-   
-    float[] tArray =  intersectionLineBezier( lineAsArray, bezierAsArray );
-
-    if (tArray.length > 0) {
-      PVector pt4 = new PVector();
-      pt4.x = bezierPoint(tB_bezier_cps[0].x, tB_bezier_cps[1].x, tB_bezier_cps[2].x, tB_bezier_cps[3].x, tArray[tArray.length-1]);
-      pt4.y = bezierPoint(tB_bezier_cps[0].y, tB_bezier_cps[1].y, tB_bezier_cps[2].y, tB_bezier_cps[3].y, tArray[tArray.length-1]);   
-
-      stroke(255, 0, 255);
-      line(venus_pos.x, venus_pos.y, pt4.x, pt4.y);
-      
-      stroke(255, 0, 255);
-      line(observerB.x, observerB.y, venus_pos.x, venus_pos.y);
+    if (Math.pow(venusAccelleration, 2) > .000001) {
+      venusAccelleration = venusAccelleration* venusFriction;
+    } 
+    else {
+      venusAccelleration = 0;
     }
-//}
+  }
 
+  fill(0);
+  text((float)curr_venusT, 10, 50);
+
+  venus_pos.x = bezierPoint(orb_PtA.x, orb_PtA_ctrl.x, orb_PtB_ctrl.x, orb_PtB.x, curr_venusT);
+  venus_pos.y = bezierPoint(orb_PtA.y, orb_PtA_ctrl.y, orb_PtB_ctrl.y, orb_PtB.y, curr_venusT);
+
+  PVector plotA = plotTransitOnBezier( observerA, venus_pos, tA_bezier_cps);
+  PVector plotB = plotTransitOnBezier( observerB, venus_pos, tB_bezier_cps);
+
+  if (plotB != null) {
+    stroke(255, 0, 255);
+    line(venus_pos.x, venus_pos.y, plotB.x, plotB.y);
+
+    stroke(255, 0, 255);
+    line(observerB.x, observerB.y, venus_pos.x, venus_pos.y);
+  }
+
+  if (plotA != null) {
+    stroke(127, 0, 255);
+    line(venus_pos.x, venus_pos.y, plotA.x, plotA.y);
+
+    stroke(255, 0, 255);
+    line(observerA.x, observerA.y, venus_pos.x, venus_pos.y);
+  }
+
+  //draw venus 
   fill(0, 0, 127, 255);
   noStroke();
-  ellipse(venus_pos.x, venus_pos.y, 30, 30);
-    
+  ellipse(venus_pos.x, venus_pos.y, venusDia, venusDia);
+
+  // test the 't is stored in a PVector.z' hack...
+  /*fill(0, 127, 0, 255);
+   noStroke();
+   float x = bezierPoint(orb_PtA.x, orb_PtA_ctrl.x, orb_PtB_ctrl.x, orb_PtB.x, venus_pos.z);
+   float y = bezierPoint(orb_PtA.y, orb_PtA_ctrl.y, orb_PtB_ctrl.y, orb_PtB.y, venus_pos.z);
+   ellipse(x, y, venusDia, venusDia);*/
+
   //draw orbital path
   noFill();
   stroke(100);
@@ -172,7 +225,7 @@ void drawVenus() {
 }
 
 void drawSun() {
-  float tilt = 0.2;
+  float tilt = 0.3;
 
   float[] sunMarkerA_pos_start = plotPosOnCircle(sunX, sunY, sunR, tilt + (((markerA_angle/3) - axis_rotation) - 0.2) + PI );
   float[] sunMarkerA_pos_end = plotPosOnCircle(sunX, sunY, sunR, tilt + (-(markerA_angle/3) - axis_rotation) + 0.2 );  
@@ -197,7 +250,7 @@ void drawSun() {
   fill(255);
   noStroke();  
   ellipse(sunX, sunY, sunR * 2, sunR * 2);
-  
+
   //draw axis markers
   noFill();
   stroke(255);
@@ -222,7 +275,7 @@ void drawSun() {
   stroke(127);
   noFill();
   bezier(tA_srt.x, tA_srt.y, tA_srt_ctrl.x, tA_srt_ctrl.y, tA_end_ctrl.x, tA_end_ctrl.y, tA_end.x, tA_end.y);
-  
+
   drawMarker(tA_srt.x, tA_srt.y, 4);
   drawMarker(tA_srt_ctrl.x, tA_srt_ctrl.y, 4);
   drawMarker(tA_end_ctrl.x, tA_end_ctrl.y, 4);
@@ -256,7 +309,7 @@ void drawSun() {
   // find intersections  
   start_intersection = lineIntersection( markerAX, markerAY, trackA_start.x, trackA_start.y, markerBX, markerBY, trackB_start.x, trackB_start.y);
   drawMarker(start_intersection.x, start_intersection.y, 4);  
-  
+
   end_intersection = lineIntersection(markerAX, markerAY, trackA_end.x, trackA_end.y, markerBX, markerBY, trackB_end.x, trackB_end.y);
   drawMarker(end_intersection.x, end_intersection.y, 4);
 
@@ -300,8 +353,6 @@ void drawEarth() {
   markerBX = markerB_pos[0];
   markerBY = markerB_pos[1];
 
-  
-  
   markerA_pos_adjusted_for_tilt = plotPosOnCircle(globeX, globeY, globeR, markerA_angle - axis_rotation);
   markerB_pos_adjusted_for_tilt = plotPosOnCircle(globeX, globeY, globeR, markerB_angle - axis_rotation);
 
@@ -311,37 +362,31 @@ void drawEarth() {
   observerA.x = markerAX;
   observerA.y = markerAY;
 
-  pushMatrix();
-  translate(globeX, globeY);
-  rotate(axis_rotation);
-
   //draw axis markers
   stroke(255); 
   noFill();
   graphics.setStroke(pen_solid);
-  line(0, -globeR + 5, 0, -globeR-6);
-  line(0, globeR+1, 0, globeR+6);
+  line(globeX, globeY-(globeR + 5), globeX, globeY- (globeR-6));
+  line(globeX, globeY+(globeR+1), globeX, globeY + (globeR+6));
 
   //draw equator
   stroke(200);
   graphics.setStroke(pen_dotted);
-  arc(0, 0, globeR * 2, (globeR * 2) * globe_tilt_ratio, 0, PI);
+  arc(globeX, globeY, globeR * 2, (globeR * 2) * globe_tilt_ratio, 0, PI);
 
   //draw markerA lattitude
   stroke(220);
   noFill();
   graphics.setStroke(pen_dashed);
   float chordLengthA = abs(calcChordLength(globeR, ((PI/2) + axis_rotation) - (markerA_angle)));
-  arc(globeX - (markerA_pos_adjusted_for_tilt[0] - (chordLengthA/2)), markerA_pos_adjusted_for_tilt[1] - globeY, chordLengthA, chordLengthA * globe_tilt_ratio, 0, PI);
+  arc(markerA_pos_adjusted_for_tilt[0] - (chordLengthA/2), markerA_pos_adjusted_for_tilt[1], chordLengthA, chordLengthA * globe_tilt_ratio, 0, PI);
 
   //draw markerB lattitude
   stroke(220);
   noFill();
   graphics.setStroke(pen_dashed);
   float chordLengthB = abs(calcChordLength(globeR, ((PI/2) + axis_rotation) - markerB_angle));
-  arc(globeX - (markerB_pos_adjusted_for_tilt[0] - (chordLengthB/2)), markerB_pos_adjusted_for_tilt[1] - globeY, chordLengthB, chordLengthB * (globe_tilt_ratio - 0.09), 0+0.2, PI-0.2);
-
-  popMatrix();
+  arc(markerB_pos_adjusted_for_tilt[0] - (chordLengthB/2), markerB_pos_adjusted_for_tilt[1], chordLengthB, chordLengthB * (globe_tilt_ratio - 0.09), 0+0.2, PI-0.2);
 
   //draw planet
   graphics.setStroke(pen_solid);
@@ -400,13 +445,44 @@ boolean overCircle(int x, int y, int diameter) {
   }
 }
 
+PVector plotTransitOnBezier(PVector observerPos, PVector planetPos, PVector[] transitBezier) {
+
+  PVector curveEndPos = transitBezier[3];
+  float arc_rad = PVector.dist(observerPos, curveEndPos) + 200;
+  float ang = angleFromBetweenPVectors(planetPos, observerPos);
+  rough_transB = plotVectorOnCircle(observerPos.x, observerPos.y, arc_rad, ang);
+
+  float[] lineAsArray = new float[] { 
+    observerPos.x, observerPos.y, rough_transB.x, rough_transB.y
+  };
+
+  float[] bezierAsArray = new float[] { 
+    transitBezier[0].x, transitBezier[0].y, 
+    transitBezier[1].x, transitBezier[1].y, 
+    transitBezier[2].x, transitBezier[2].y, 
+    transitBezier[3].x, transitBezier[3].y
+  };
+
+  float[] intersections =  intersectionLineBezier( lineAsArray, bezierAsArray );
+
+  PVector plot = new PVector();
+
+  if (intersections.length > 0) {
+    float lastIntersection = intersections[intersections.length -1];
+    plot.x = bezierPoint(transitBezier[0].x, transitBezier[1].x, transitBezier[2].x, transitBezier[3].x, lastIntersection);
+    plot.y = bezierPoint(transitBezier[0].y, transitBezier[1].y, transitBezier[2].y, transitBezier[3].y, lastIntersection);
+  } 
+  else {
+    plot = null;
+  }
+  return plot;
+}
+
+
 /**
- ClosestPointOnCurve, Dave Bollinger, circa 2006, revised 9/2010
+ Derived from: ClosestPointOnCurve, Dave Bollinger, circa 2006, revised 9/2010
  numerical approximation by linearly subdividing the curves into a given number of segments
- */
-
-
-/**
+ 
  * Returns the closest point on a bezier curve relative to a search location.
  * This is only an approximation, by subdividing the curve a given number of times.
  * More subdivisions gives a better approximation but takes longer, and vice versa.
@@ -416,9 +492,10 @@ boolean overCircle(int x, int y, int diameter) {
  * @param cps    array of four PVectors that define the control points of the curve
  * @param pt     the search-from location
  * @param ndivs  how many segments to subdivide the curve into
- * @returns      PVector containing closest subdivided point on curve
+ * @returns      PVector containing closest subdivided point on curve, with t in the z...
  */
-PVector ClosestPointOnBezier(PVector [] cps, PVector pt, int ndivs) {
+
+PVector closestPointOnBezier(PVector [] cps, PVector pt, int ndivs) {
   PVector result = new PVector();
   float bestDistanceSquared = 0;
   float bestT = 0;
@@ -432,7 +509,7 @@ PVector ClosestPointOnBezier(PVector [] cps, PVector pt, int ndivs) {
     if (i==0 || dissq < bestDistanceSquared) {
       bestDistanceSquared = dissq;
       bestT = t;
-      result.set(x, y, 0);
+      result.set(x, y, t);
     }
   }
   return result;
