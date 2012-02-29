@@ -1,5 +1,5 @@
 import java.awt.*;
-//import java.awt.geom.*;
+import java.awt.geom.*;
 
 PFont font;
 PShape s;
@@ -57,7 +57,7 @@ void setup() {
   size(2732, 768);  
   frameRate(60);
   smooth();
-  s = loadShape("Proxy_bot.svg");
+  //s = loadShape("Labyrinth.svg");
   font = createFont("Helvetica-Bold", 18);
   textFont(font);
   graphics = ((PGraphicsJava2D) g).g2;
@@ -122,7 +122,6 @@ void drawTransitImage(int x, int y, float srt_angle, float end_angle, float t) {
 }
 
 void draw() {
-  frame.setLocation(0,0);
   background(bg);
   drawTransitZone();
   drawEarth();
@@ -151,7 +150,6 @@ void calculateTransitExtremes() {
 
 void drawOther() {
   rect(1368, 0, 1368, 768);
-  shape(s, 10, 10, 80, 80);
 }
 
 void mousePressed() {
@@ -531,7 +529,7 @@ void drawEarth() {
   drawMarker(markerBX, markerBY, 7);
 }
 
-/*static public void main(String args[]) {
+static public void main(String args[]) {
   Frame frame = new Frame("testing");
   frame.setUndecorated(true);
   // The name "sketch_name" must match the name of your program
@@ -542,15 +540,7 @@ void drawEarth() {
   frame.setVisible(true);
 
   applet.init();
-}*/
-
-public void init(){
-  frame.removeNotify();
-  frame.setUndecorated(true);
-  frame.addNotify();
-  super.init();
 }
-
 
 float calcChordLength(float circle_r, float intersect_a) {
   return (circle_r * 2) * (sin(intersect_a));

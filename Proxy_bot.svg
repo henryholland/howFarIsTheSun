@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN"
+ "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd" [
+ <!ATTLIST svg xmlns:xlink CDATA #FIXED "http://www.w3.org/1999/xlink">
+]>
+<svg width="70pt" height="188pt"
+ viewBox="0.00 0.00 70.00 188.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 184)">
+<title>G</title>
+<polygon style="fill:white;stroke:white;" points="-4,4 -4,-184 66,-184 66,4 -4,4"/>
+<!-- Client -->
+<g id="node1" class="node"><title>Client</title>
+<polygon style="fill:#efefef;stroke:black;" points="59,-180 3,-180 3,-144 59,-144 59,-180"/>
+<text text-anchor="middle" x="31" y="-157.9" style="font-family:Verdana;font-size:14.00;">Client</text>
+</g>
+<!-- Bot -->
+<g id="node3" class="node"><title>Bot</title>
+<polygon style="fill:#efefef;stroke:black;" points="58,-108 4,-108 4,-72 58,-72 58,-108"/>
+<text text-anchor="middle" x="31" y="-85.9" style="font-family:Verdana;font-size:14.00;">Bot</text>
+</g>
+<!-- Client&#45;&#45;Bot -->
+<g id="edge2" class="edge"><title>Client&#45;&#45;Bot</title>
+<path style="fill:none;stroke:black;" d="M31,-134C31,-129 31,-123 31,-118"/>
+<polygon style="fill:black;stroke:black;" points="27.5001,-134 31,-144 34.5001,-134 27.5001,-134"/>
+<polygon style="fill:black;stroke:black;" points="34.5001,-118 31,-108 27.5001,-118 34.5001,-118"/>
+</g>
+<!-- Server -->
+<g id="node4" class="node"><title>Server</title>
+<polygon style="fill:#efefef;stroke:black;" points="62,-36 2.84217e-14,-36 0,-1.77636e-14 62,-3.55271e-15 62,-36"/>
+<text text-anchor="middle" x="31" y="-13.9" style="font-family:Verdana;font-size:14.00;">Server</text>
+</g>
+<!-- Bot&#45;&#45;Server -->
+<g id="edge3" class="edge"><title>Bot&#45;&#45;Server</title>
+<path style="fill:none;stroke:black;" d="M31,-62C31,-57 31,-51 31,-46"/>
+<polygon style="fill:black;stroke:black;" points="27.5001,-62 31,-72 34.5001,-62 27.5001,-62"/>
+<polygon style="fill:black;stroke:black;" points="34.5001,-46 31,-36 27.5001,-46 34.5001,-46"/>
+</g>
+</g>
+</svg>

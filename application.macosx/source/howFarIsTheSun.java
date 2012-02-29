@@ -1,5 +1,27 @@
-import java.awt.*;
-//import java.awt.geom.*;
+import processing.core.*; 
+import processing.xml.*; 
+
+import java.awt.*; 
+import java.awt.geom.*; 
+
+import java.applet.*; 
+import java.awt.Dimension; 
+import java.awt.Frame; 
+import java.awt.event.MouseEvent; 
+import java.awt.event.KeyEvent; 
+import java.awt.event.FocusEvent; 
+import java.awt.Image; 
+import java.io.*; 
+import java.net.*; 
+import java.text.*; 
+import java.util.*; 
+import java.util.zip.*; 
+import java.util.regex.*; 
+
+public class howFarIsTheSun extends PApplet {
+
+
+
 
 PFont font;
 PShape s;
@@ -8,7 +30,7 @@ float[] dashes = { 4.0f, 8.0f, 4.0f, 8.0f };
 float[] dots = { 1.0f, 8.0f, 1.0f, 8.0f };
 float[] orbit_dash = { 100.0f, 20.0f, 10.0f, 80.0f };
 
-color bg = color(16, 16, 32);
+int bg = color(16, 16, 32);
 
 Graphics2D graphics;
 
@@ -53,11 +75,11 @@ float[] markerA_pos_adjusted_for_tilt, markerB_pos_adjusted_for_tilt;
 
 boolean init;
 
-void setup() {
+public void setup() {
   size(2732, 768);  
   frameRate(60);
   smooth();
-  s = loadShape("Proxy_bot.svg");
+  s = loadShape("Labyrinth.svg");
   font = createFont("Helvetica-Bold", 18);
   textFont(font);
   graphics = ((PGraphicsJava2D) g).g2;
@@ -76,7 +98,7 @@ void setup() {
   markerA_dragging = markerB_dragging = false;
   venus_dragging = true;
 
-  globe_tilt_ratio =  0.2;
+  globe_tilt_ratio =  0.2f;
   axis_rotation = 0;//0.2;
 
   globeX = 200;
@@ -91,10 +113,10 @@ void setup() {
   venusY = 326;
   venusDia = 80;
 
-  curr_venusT = 0.5;
+  curr_venusT = 0.5f;
   venusAccelleration = 0;
   venusAccellerationMax = 5;
-  venusFriction = 0.90;
+  venusFriction = 0.90f;
 
   observerA = new PVector(); 
   observerB = new PVector();
@@ -117,12 +139,11 @@ void setup() {
   //calculateTransitExtremes();
 }
 
-void drawTransitImage(int x, int y, float srt_angle, float end_angle, float t) {
+public void drawTransitImage(int x, int y, float srt_angle, float end_angle, float t) {
     
 }
 
-void draw() {
-  frame.setLocation(0,0);
+public void draw() {
   background(bg);
   drawTransitZone();
   drawEarth();
@@ -142,29 +163,28 @@ void draw() {
   line(1368, 0, 1368, 768);
 }
 
-void calculateTransitExtremes() {
+public void calculateTransitExtremes() {
   last_B_t = plotTransitExtremesOnBezier(observerB, tB_bezier_cps, false);
   last_A_t = plotTransitExtremesOnBezier(observerA, tA_bezier_cps, false);
   first_B_t = plotTransitExtremesOnBezier(observerB, tB_bezier_cps, true);
   first_A_t = plotTransitExtremesOnBezier(observerA, tA_bezier_cps, true);
 }
 
-void drawOther() {
+public void drawOther() {
   rect(1368, 0, 1368, 768);
-  shape(s, 10, 10, 80, 80);
 }
 
-void mousePressed() {
-  if ( overCircle(int(venus_pos.x), int(venus_pos.y), int(venusDia*2))) {
+public void mousePressed() {
+  if ( overCircle(PApplet.parseInt(venus_pos.x), PApplet.parseInt(venus_pos.y), PApplet.parseInt(venusDia*2))) {
     venusDragging = true;
   }
   
-  if ( overCircle(int(markerAX), int(markerAY), int(venusDia*2))) {
+  if ( overCircle(PApplet.parseInt(markerAX), PApplet.parseInt(markerAY), PApplet.parseInt(venusDia*2))) {
     observerADragging = true;
   }
 }
 
-void mouseReleased() {
+public void mouseReleased() {
   if (venusDragging) {
     venusDragging = false;
   }
@@ -174,7 +194,7 @@ void mouseReleased() {
   }
 }
 
-void drawVenus() {
+public void drawVenus() {
   int orbitW = 1800;
   int orbitH = 500;
 
@@ -210,20 +230,20 @@ void drawVenus() {
     curr_venusT = venus_pos.z;
 
     //lower slingshot
-    if (!orbitLeft && ((curr_venusT > 0.02) && (curr_venusT <= 0.5))) {
+    if (!orbitLeft && ((curr_venusT > 0.02f) && (curr_venusT <= 0.5f))) {
        venusDragging = false;
-       venusAccelleration = 0.1861;
+       venusAccelleration = 0.1861f;
     }
 
     //upper slingshot
-    if (orbitLeft && ((curr_venusT < 0.05)) && ( curr_venusT >= 0.01 )){
+    if (orbitLeft && ((curr_venusT < 0.05f)) && ( curr_venusT >= 0.01f )){
        venusDragging = false;
-       venusAccelleration = -0.12;
+       venusAccelleration = -0.12f;
     }    
     
   } else {
     venusRolling = true;    
-    if (Math.abs(venusAccelleration) > .001) {
+    if (Math.abs(venusAccelleration) > .001f) {
       venusAccelleration *= venusFriction;
       text("rolling", 10, 75);
     } 
@@ -291,7 +311,7 @@ void drawVenus() {
   PVector plotB = null;
   
   // calcualte points of view from observers (only if venus is in the left hand, lower part of the orbit)
-  if (orbitLeft && curr_venusT > 0.5) {
+  if (orbitLeft && curr_venusT > 0.5f) {
     plotA = plotTransitOnBezier( observerA, venus_pos, tA_bezier_cps);
     plotB = plotTransitOnBezier( observerB, venus_pos, tB_bezier_cps);
   }
@@ -348,14 +368,14 @@ void drawVenus() {
   }
 }
 
-void drawSun() {
-  float tilt = 0.1;
+public void drawSun() {
+  float tilt = 0.1f;
 
-  float[] sunMarkerA_pos_start = plotPosOnCircle(sunX, sunY, sunR, tilt + (((markerA_angle/3) - axis_rotation) - 0.2) + PI );
-  float[] sunMarkerA_pos_end = plotPosOnCircle(sunX, sunY, sunR, tilt + (-(markerA_angle/3) - axis_rotation) + 0.2 );  
+  float[] sunMarkerA_pos_start = plotPosOnCircle(sunX, sunY, sunR, tilt + (((markerA_angle/3) - axis_rotation) - 0.2f) + PI );
+  float[] sunMarkerA_pos_end = plotPosOnCircle(sunX, sunY, sunR, tilt + (-(markerA_angle/3) - axis_rotation) + 0.2f );  
 
-  float[] sunMarkerB_pos_start = plotPosOnCircle(sunX, sunY, sunR, tilt + (((markerB_angle/6) - axis_rotation) + 0.1) + PI );
-  float[] sunMarkerB_pos_end = plotPosOnCircle(sunX, sunY, sunR, tilt + (-(markerB_angle/6) - axis_rotation) - 0.1 );
+  float[] sunMarkerB_pos_start = plotPosOnCircle(sunX, sunY, sunR, tilt + (((markerB_angle/6) - axis_rotation) + 0.1f) + PI );
+  float[] sunMarkerB_pos_end = plotPosOnCircle(sunX, sunY, sunR, tilt + (-(markerB_angle/6) - axis_rotation) - 0.1f );
 
   trackA_start.x = sunMarkerA_pos_start[0];
   trackA_start.y = sunMarkerA_pos_start[1];
@@ -456,24 +476,24 @@ void drawSun() {
   drawMarker(first_AX, first_AY, 10);
 }
 
-void drawTransitZone() {
+public void drawTransitZone() {
 }
 
-void drawEarth() {
+public void drawEarth() {
   if (observerADragging) {
     markerA_angle = angleFromMouseToCircleCentre(globeX, globeY);
     calculateTransitExtremes();
   }
 
-  markerB_angle = 0.5;
+  markerB_angle = 0.5f;
 
   //upper limit
-  if (markerA_angle < 0-(PI/2) + (0.8)) {//+ (axis_rotation))) {
-    markerA_angle = (0-(PI/2)) + (0.8 );//+ (axis_rotation));
+  if (markerA_angle < 0-(PI/2) + (0.8f)) {//+ (axis_rotation))) {
+    markerA_angle = (0-(PI/2)) + (0.8f );//+ (axis_rotation));
   }
   // lower limit
-  if (markerA_angle >= -0.14) {
-    markerA_angle = -0.14;
+  if (markerA_angle >= -0.14f) {
+    markerA_angle = -0.14f;
   }
 
   float[] markerA_pos = plotPosOnCircle(globeX, globeY, globeR, markerA_angle);
@@ -524,14 +544,14 @@ void drawEarth() {
   noFill();
   graphics.setStroke(pen_dashed);
   float chordLengthB = abs(calcChordLength(globeR, ((PI/2) + axis_rotation) - markerB_angle));
-  arc(markerB_pos_adjusted_for_tilt[0] - (chordLengthB/2), markerB_pos_adjusted_for_tilt[1], chordLengthB, chordLengthB * (globe_tilt_ratio - 0.09), 0+0.2, PI-0.2);
+  arc(markerB_pos_adjusted_for_tilt[0] - (chordLengthB/2), markerB_pos_adjusted_for_tilt[1], chordLengthB, chordLengthB * (globe_tilt_ratio - 0.09f), 0+0.2f, PI-0.2f);
 
   //draw marker
   drawMarker(markerAX, markerAY, 7);
   drawMarker(markerBX, markerBY, 7);
 }
 
-/*static public void main(String args[]) {
+static public void main(String args[]) {
   Frame frame = new Frame("testing");
   frame.setUndecorated(true);
   // The name "sketch_name" must match the name of your program
@@ -542,52 +562,44 @@ void drawEarth() {
   frame.setVisible(true);
 
   applet.init();
-}*/
-
-public void init(){
-  frame.removeNotify();
-  frame.setUndecorated(true);
-  frame.addNotify();
-  super.init();
 }
 
-
-float calcChordLength(float circle_r, float intersect_a) {
+public float calcChordLength(float circle_r, float intersect_a) {
   return (circle_r * 2) * (sin(intersect_a));
 }
 
-float[] plotPosOnCircle(float circle_x, float circle_y, float circle_r, float marker_a) {
+public float[] plotPosOnCircle(float circle_x, float circle_y, float circle_r, float marker_a) {
   float[] pos = { 
     circle_x + (cos(marker_a) * circle_r), circle_y + (sin(marker_a) * circle_r)
     };
     return pos;
 }
 
-PVector plotVectorOnCircle(float origin_x, float origin_y, float circle_r, float vector_a) {
+public PVector plotVectorOnCircle(float origin_x, float origin_y, float circle_r, float vector_a) {
   PVector pos = new PVector(origin_x + (cos(vector_a) * circle_r), origin_y + (sin(vector_a) * circle_r));
   return pos;
 }
 
-void drawMarker(float marker_x, float marker_y, float marker_r) {
+public void drawMarker(float marker_x, float marker_y, float marker_r) {
   noStroke();
   fill(255, 0, 0);
   ellipseMode(CENTER);
   ellipse(marker_x, marker_y, marker_r * 2, marker_r * 2);
 }
 
-float angleFromBetweenPVectors(PVector v1, PVector v2) {
+public float angleFromBetweenPVectors(PVector v1, PVector v2) {
   float dx = v2.x - v1.x;
   float dy = v2.y - v1.y;
   return atan2(dy, dx);
 }
 
-float angleFromMouseToCircleCentre(float circle_x, float circle_y) {
+public float angleFromMouseToCircleCentre(float circle_x, float circle_y) {
   float dx = mouseX - circle_x;
   float dy = mouseY - circle_y;
   return atan2(dy, dx);
 }
 
-boolean overCircle(int x, int y, int diameter) {
+public boolean overCircle(int x, int y, int diameter) {
   float disX = x - mouseX;
   float disY = y - mouseY;
   if (sqrt(sq(disX) + sq(disY)) < diameter/2 ) {
@@ -598,7 +610,7 @@ boolean overCircle(int x, int y, int diameter) {
   }
 }
 
-float plotTransitExtremesOnBezier(PVector observerPos, PVector[] transitBezier, boolean firstExtreme) {
+public float plotTransitExtremesOnBezier(PVector observerPos, PVector[] transitBezier, boolean firstExtreme) {
   PVector curveEndPos = transitBezier[3];
   float arc_rad = PVector.dist(observerPos, curveEndPos) + 200;
   float ang;
@@ -635,7 +647,7 @@ float plotTransitExtremesOnBezier(PVector observerPos, PVector[] transitBezier, 
       located = true;
       break;
     } else {
-      ang += 0.001;
+      ang += 0.001f;
     }
   }
   
@@ -649,7 +661,7 @@ float plotTransitExtremesOnBezier(PVector observerPos, PVector[] transitBezier, 
   }
 }
 
-PVector plotTransitOnBezier(PVector observerPos, PVector planetPos, PVector[] transitBezier) {
+public PVector plotTransitOnBezier(PVector observerPos, PVector planetPos, PVector[] transitBezier) {
 
   PVector curveEndPos = transitBezier[3];
   float arc_rad = PVector.dist(observerPos, curveEndPos) + 200;
@@ -699,7 +711,7 @@ PVector plotTransitOnBezier(PVector observerPos, PVector planetPos, PVector[] tr
  * @returns      PVector containing closest subdivided point on curve, with t in the z...
  */
 
-PVector closestPointOnBezier(PVector [] cps, PVector pt, int ndivs) {
+public PVector closestPointOnBezier(PVector [] cps, PVector pt, int ndivs) {
   PVector result = new PVector();
   float bestDistanceSquared = 0;
   float bestT = 0;
@@ -719,7 +731,7 @@ PVector closestPointOnBezier(PVector [] cps, PVector pt, int ndivs) {
   return result;
 }
 
-PVector lineIntersection(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4) {
+public PVector lineIntersection(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4) {
   float bx = x2 - x1;
   float by = y2 - y1;
   float dx = x4 - x3;
@@ -762,14 +774,14 @@ public static float[] thirdDegree( double a, double b, double c, double d ) {
 
   //System.out.println("\nl'equation a resoudre est : " + a + "x^3+" + b + "x^2+" + c + "x+" + d + "=0\n");
 
-  p = (c / a) - (Math.pow(b, 2.0) / (3 * Math.pow(a, 2.0)));
-  q = ((2 * Math.pow(b, 3.0)) / (27 * Math.pow(a, 3.0)))
-    - ((b * c) / (3 * Math.pow(a, 2.0))) + (d / a);
-  gDelta = 4 * Math.pow(p, 3.0) + 27 * Math.pow(q, 2.0);
-  m = ((-q) / 2) + (0.5) * Math.sqrt(gDelta / 27);
-  n = ((-q) / 2) - (0.5) * Math.sqrt(gDelta / 27);
-  u = Math.pow(Math.abs(m), 1.0 / 3);
-  v = Math.pow(Math.abs(n), 1.0 / 3);
+  p = (c / a) - (Math.pow(b, 2.0f) / (3 * Math.pow(a, 2.0f)));
+  q = ((2 * Math.pow(b, 3.0f)) / (27 * Math.pow(a, 3.0f)))
+    - ((b * c) / (3 * Math.pow(a, 2.0f))) + (d / a);
+  gDelta = 4 * Math.pow(p, 3.0f) + 27 * Math.pow(q, 2.0f);
+  m = ((-q) / 2) + (0.5f) * Math.sqrt(gDelta / 27);
+  n = ((-q) / 2) - (0.5f) * Math.sqrt(gDelta / 27);
+  u = Math.pow(Math.abs(m), 1.0f / 3);
+  v = Math.pow(Math.abs(n), 1.0f / 3);
 
   if (gDelta > 0) {
     if (m < 0)
@@ -805,12 +817,12 @@ public static float[] thirdDegree( double a, double b, double c, double d ) {
       * Math.cos((theta + 2 * Math.PI) / 3);
     z = 2 * Math.sqrt((-p) / 3)
       * Math.cos((theta + 4 * Math.PI) / 3);
-    if (x > -1E-6 && x < 1E-6)
-      x = 0.0;
-    if (y > -1E-6 && y < 1E-6)
-      y = 0.0;
-    if (z > -1E-6 && z < 1E-6)
-      z = 0.0;
+    if (x > -1e-6f && x < 1e-6f)
+      x = 0.0f;
+    if (y > -1e-6f && y < 1e-6f)
+      y = 0.0f;
+    if (z > -1e-6f && z < 1e-6f)
+      z = 0.0f;
     x += (-b) / (3 * a);
     y += (-b) / (3 * a);
     z += (-b) / (3 * a);
@@ -844,3 +856,4 @@ public static float[] computeLine(float x1, float y1, float x2, float y2) {
   return out;
 }
 
+}
