@@ -1,12 +1,19 @@
+//import processing.opengl.*;
 import java.awt.*;
 //import java.awt.geom.*;
 
 PFont font;
-PShape s;
+PShape title_gfx, sun_gfx, earth_gfx;
 
-float[] dashes = { 4.0f, 8.0f, 4.0f, 8.0f };
-float[] dots = { 1.0f, 8.0f, 1.0f, 8.0f };
-float[] orbit_dash = { 100.0f, 20.0f, 10.0f, 80.0f };
+float[] dashes = { 
+  4.0f, 8.0f, 4.0f, 8.0f
+};
+float[] dots = { 
+  1.0f, 8.0f, 1.0f, 8.0f
+};
+float[] orbit_dash = { 
+  100.0f, 20.0f, 10.0f, 80.0f
+};
 
 color bg = color(16, 16, 32);
 
@@ -56,13 +63,18 @@ float[] markerA_pos_adjusted_for_tilt, markerB_pos_adjusted_for_tilt;
 boolean init;
 
 void setup() {
-  size(2732, 768);  
+  size(2732, 768, JAVA2D);  
   frameRate(60);
   smooth();
-  s = loadShape("Proxy_bot.svg");
+
+  title_gfx = loadShape("gfx/title.svg");
+  sun_gfx = loadShape("gfx/sun.svg");
+  earth_gfx = loadShape("gfx/earth.svg");
+
   font = createFont("Helvetica-Bold", 18);
   textFont(font);
   graphics = ((PGraphicsJava2D) g).g2;
+  //graphics = g.g2;
 
   //pens!
   pen_dotted = new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_MITER, 2.0f, dots, 0.0f);
@@ -72,7 +84,7 @@ void setup() {
   pen_orbit = new BasicStroke(9.0f, BasicStroke.CAP_SQUARE, BasicStroke.JOIN_MITER);
   //GUI vars
   textFont(font, 18);
- 
+
   init = false; 
   orbitLeft = true;
   markerA_dragging = markerB_dragging = false;
@@ -102,7 +114,7 @@ void setup() {
   observerB = new PVector();
 
   observerATransiting = observerBTransiting = false;
-  
+
   start_intersection = new PVector(); 
   end_intersection = new PVector();
 
@@ -116,59 +128,86 @@ void setup() {
 }
 
 void drawTransitImage(int x, int y, float angle, float t, boolean drawA) {
-    float tilt = 0.2;
-    fill(255);
-    noStroke();
-    ellipseMode(CORNER);
-    float transitImage_radius = 50;
-    ellipse(x, y, transitImage_radius*2, transitImage_radius*2);
-      
-    float transit_duration;
-    
-    float transit_start_ang;
-    float transit_end_ang;
-    
-    if (drawA) {
-      transit_duration = last_A_t;
-      transit_start_ang = tilt + (((markerA_angle/3) - axis_rotation) - 0.2) + PI;
-      transit_end_ang =  tilt + (-(markerA_angle/3) - axis_rotation) + 0.2; 
-    } else {
-      transit_duration = last_B_t;      
-      transit_start_ang = tilt + (((markerB_angle/6) - axis_rotation) - 0.1) + PI ;
-      transit_end_ang =  tilt + (-(markerB_angle/6) - axis_rotation) + 0.1; 
-    }
-   
-    float transit_progress = t * (1/transit_duration);
-    
-    PVector transit_start = plotVectorOnCircle(x + transitImage_radius, y + transitImage_radius, transitImage_radius, transit_start_ang );
-    PVector transit_end = plotVectorOnCircle(x + transitImage_radius, y + transitImage_radius, transitImage_radius, transit_end_ang ); 
-    drawMarker(transit_start.x, transit_start.y, 4);
-    drawMarker(transit_end.x, transit_end.y, 4);
-    
+  float tilt = 0.2;
+  fill(255);
+  noStroke();
+
+  float transitImage_radius = 40;
+  fill(127);
+  float boxWidth = transitImage_radius * 1.55;
+  float boxHeight = transitImage_radius * 1.85;
+
+  pushMatrix();
+  translate(x, y);
+  ((PGraphicsJava2D) g).skewY(PI/20);
+
+  rect(-(boxWidth), -(boxHeight), boxWidth *2, boxHeight *2);
+  fill(255);
+  
+  noStroke();
+  
+  fill(255);
+  shapeMode(CENTER);
+  shape(sun_gfx, 0, 0, sunR * 0.8, sunR * 0.8);
+  ellipseMode(CENTER);
+  ellipse(0, 0, transitImage_radius*2, transitImage_radius*2);
+
+  float transit_duration;
+
+  float transit_start_ang;
+  float transit_end_ang;
+  String s;
+  if (drawA) {
+    s = "A";
+    transit_duration = last_A_t;
+    transit_start_ang = tilt + (((markerA_angle/3) - axis_rotation) - 0.2) + PI;
+    transit_end_ang =  tilt + (-(markerA_angle/3) - axis_rotation) + 0.2;
+  } 
+  else {
+    s = "B";
+    transit_duration = last_B_t;      
+    transit_start_ang = tilt + (((markerB_angle/6) - axis_rotation) - 0.1) + PI ;
+    transit_end_ang =  tilt + (-(markerB_angle/6) - axis_rotation) + 0.1;
+  }
+  
+  text(s, -(boxWidth) + 5, -(boxHeight) + 18);
+  float transit_progress = t * (1/transit_duration);
+
+  if (transit_progress >= 0) {
+    PVector transit_start = plotVectorOnCircle( 0, 0, transitImage_radius, transit_start_ang );
+    PVector transit_end = plotVectorOnCircle( 0, 0, transitImage_radius, transit_end_ang ); 
+
     PVector dotPos = new PVector();
-    dotPos.x = transit_start.x + ((transit_end.x - transit_start.x)*transit_progress);
-    dotPos.y = transit_start.y + ((transit_end.y - transit_start.y)*transit_progress);
-    drawMarker(dotPos.x, dotPos.y, 4);
+    dotPos.x = transit_start.x + ((transit_end.x - transit_start.x) * transit_progress);
+    dotPos.y = transit_start.y + ((transit_end.y - transit_start.y) * transit_progress);
+
+
+    noStroke();
+    fill(10);
+    ellipseMode(CENTER);
+    ellipse(dotPos.x, dotPos.y, 15, 15);
+  }
+
+  popMatrix();
 }
 
 void draw() {
-  frame.setLocation(0,0);
+  frame.setLocation(0, 0);
   background(bg);
-  drawTransitZone();
   drawEarth();
   drawSun();
   drawVenus();
-  
+
   if (!init) {
     calculateTransitExtremes();
     init = true;
   }
-  
+
   drawScreen2BG();
+  drawLabels();
 
-  drawTransitImage(200,200, markerA_angle, curr_transitA_pos, true);
-
-    drawTransitImage(400,200, markerB_angle, curr_transitB_pos, false);
+  drawTransitImage(1707, 350, markerA_angle, curr_transitA_pos, true);
+  drawTransitImage(1707, 576, markerB_angle, curr_transitB_pos, false);
 
   //draw tmp screen guide
   stroke(0, 0, 255);
@@ -184,15 +223,21 @@ void calculateTransitExtremes() {
 }
 
 void drawScreen2BG() {
+  noStroke();s
+  fill(bg);
   rect(1368, 0, 1368, 768);
-  shape(s, 10, 10, 80, 80);
+}
+
+void drawLabels() {
+  shapeMode(CORNER);
+  shape(title_gfx, 1368 - (title_gfx.width*2) + 10, 768 - (title_gfx.height*2) + 10, title_gfx.width*2, title_gfx.height*2);
 }
 
 void mousePressed() {
   if ( overCircle(int(venus_pos.x), int(venus_pos.y), int(venusDia*2))) {
     venusDragging = true;
   }
-  
+
   if ( overCircle(int(markerAX), int(markerAY), int(venusDia*2))) {
     observerADragging = true;
   }
@@ -202,37 +247,57 @@ void mouseReleased() {
   if (venusDragging) {
     venusDragging = false;
   }
-  
+
   if (observerADragging) {
     observerADragging = false;
   }
 }
 
+void checkVenusDirection() {
+
+  if (curr_venusT - prev_venusT < 0) {
+    venusDirection = -1;
+  } 
+  else if (curr_venusT - prev_venusT > 0) {
+    venusDirection = 1;
+  }
+
+  text(venusDirection, 10, 145);
+}
+
 void drawVenus() {
   int orbitW = 1800;
   int orbitH = 500;
+  int orbitY_offset = -30;
 
   //left half of the orbit..
-  PVector orb_PtA = new PVector(sunX, sunY-(orbitH/2) + 30);
-  PVector orb_PtA_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY-(orbitH/2) + 30);
-  PVector orb_PtB = new PVector(sunX, sunY+(orbitH/2)- 5);
-  PVector orb_PtB_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY+(orbitH/2)-10 );
+  PVector orb_PtA = new PVector(sunX, sunY + orbitY_offset -(orbitH/2) );
+  PVector orb_PtA_ctrl = new PVector(sunX + orbitY_offset-(orbitW/2) - 200, sunY-(orbitH/2));
+  PVector orb_PtB = new PVector(sunX, sunY + orbitY_offset +(orbitH/2)- 5);
+  PVector orb_PtB_ctrl = new PVector(sunX-(orbitW/2) - 200, sunY + orbitY_offset +(orbitH/2)-10 );
 
   //right half of the orbit..
-  PVector orb2_PtA = new PVector(sunX, sunY - (orbitH/2) + 30);
-  PVector orb2_PtA_ctrl = new PVector(sunX + (orbitW/2) + 200, sunY-(orbitH/2) + 30);
-  PVector orb2_PtB = new PVector(sunX, sunY + (orbitH/2) - 5);
-  PVector orb2_PtB_ctrl = new PVector(sunX + (orbitW/2) + 200, sunY+(orbitH/2)-10 );
+  PVector orb2_PtA = new PVector(sunX, sunY + orbitY_offset - (orbitH/2) );
+  PVector orb2_PtA_ctrl = new PVector(sunX + (orbitW/2) + 200, sunY + orbitY_offset + orbitY_offset-(orbitH/2));
+  PVector orb2_PtB = new PVector(sunX, sunY + orbitY_offset + (orbitH/2) - 5);
+  PVector orb2_PtB_ctrl = new PVector(sunX + (orbitW/2) + 200, sunY + orbitY_offset +(orbitH/2)-10 );
 
-  PVector [] cps_left = { orb_PtA, orb_PtA_ctrl, orb_PtB_ctrl, orb_PtB  };
-  PVector [] cps_right = { orb2_PtB, orb2_PtB_ctrl, orb2_PtA_ctrl, orb2_PtA  }; 
+  PVector [] cps_left = { 
+    orb_PtA, orb_PtA_ctrl, orb_PtB_ctrl, orb_PtB
+  };
+
+  PVector [] cps_right = { 
+    orb2_PtB, orb2_PtB_ctrl, orb2_PtA_ctrl, orb2_PtA
+  }; 
+
   PVector [] cps;
 
   PVector mouse_pos = new PVector(mouseX, mouseY);
 
   if (orbitLeft) {
     cps = cps_left;
-  } else {
+  } 
+  else {
     cps = cps_right;
   }
 
@@ -242,21 +307,28 @@ void drawVenus() {
     text("dragging", 10, 100);
     venus_pos = closestPointOnBezier(cps, mouse_pos, 800);
     curr_venusT = venus_pos.z;
-
+    checkVenusDirection();
     //lower slingshot
-    if (!orbitLeft && ((curr_venusT > 0.02) && (curr_venusT <= 0.5))) {
-       venusDragging = false;
-       venusAccelleration = 0.1861;
+    if (!orbitLeft && ((curr_venusT > 0.02) && (curr_venusT <= 0.5)) && venusDirection == 1) {
+      venusDragging = false;
+      venusAccelleration = 0.1861;
     }
 
     //upper slingshot
-    if (orbitLeft && ((curr_venusT < 0.05)) && ( curr_venusT >= 0.01 )){
-       venusDragging = false;
-       venusAccelleration = -0.12;
-    }    
-    
-  } else {
-    venusRolling = true;    
+    //    if (orbitLeft && ((curr_venusT < 0.05)) && ( curr_venusT >= 0.01) && venusDirection == -1) {
+    if (orbitLeft && ((curr_venusT < 0.2)) && venusDirection == -1) {
+      venusDragging = false;
+      venusAccelleration = -0.148;
+    }
+
+    if (!orbitLeft && (curr_venusT > 0.05)) {
+      venusDragging = false;
+      venusAccelleration = 0.1821;
+    }
+  }  
+  else {
+    venusRolling = true;
+
     if (Math.abs(venusAccelleration) > .001) {
       venusAccelleration *= venusFriction;
       text("rolling", 10, 75);
@@ -266,18 +338,11 @@ void drawVenus() {
       venusAccelleration = 0;
       text("stopped", 10, 75);
     }
+    checkVenusDirection();
   }
-  
-  if (curr_venusT - prev_venusT < 0) {
-    venusDirection = -1;
-  } else if (curr_venusT - prev_venusT > 0) {
-    venusDirection = 1;
-  }
-  
-  text(venusDirection, 10, 145);
-  
+
   //how switch orbit curves..
-  
+
   //bottom, going right
   if (orbitLeft && curr_venusT >= 1 && venusDirection == 1) {
     curr_venusT = 0;
@@ -285,55 +350,57 @@ void drawVenus() {
   }
   //bottom, going right
   if (!orbitLeft && curr_venusT <= 0 && venusDirection == -1 ) {
-      curr_venusT = 1;
-      orbitLeft = true;
+    curr_venusT = 1;
+    orbitLeft = true;
   }
   //top, going right
   if (!orbitLeft && curr_venusT >= 1 && venusDirection == 1 ) {
-      curr_venusT = 0;
-      orbitLeft = true;
+    curr_venusT = 0;
+    orbitLeft = true;
   }
-  
+
   //top, going left
   if (orbitLeft && curr_venusT <= 0 && venusDirection == -1) {
-      curr_venusT = 1;
-      orbitLeft = false;
+    curr_venusT = 1;
+    orbitLeft = false;
   } 
- 
+
   // choose which curve data to use...again
   if (orbitLeft) {
     cps = cps_left;
-  } else {
+  } 
+  else {
     cps = cps_right;
   }
-  
+
   if (orbitLeft) {
     text("left", 10, 125);
-  } else {
-    text("right", 10, 125); 
+  } 
+  else {
+    text("right", 10, 125);
   }
-    
+
   curr_venusT = curr_venusT + venusAccelleration; 
   prev_venusT = curr_venusT;
-  
+
   text(curr_venusT, 10, 175);
-  
+
   venus_pos.x = bezierPoint(cps[0].x, cps[1].x, cps[2].x, cps[3].x, curr_venusT);
   venus_pos.y = bezierPoint(cps[0].y, cps[1].y, cps[2].y, cps[3].y, curr_venusT);
 
   PVector plotA = null;
   PVector plotB = null;
-  
+
   // calcualte points of view from observers (only if venus is in the left hand, lower part of the orbit)
   if (orbitLeft && curr_venusT > 0.5) {
-    
+
     curr_transitA_pos = findTransitOnBezier( observerA, venus_pos, tA_bezier_cps);
     curr_transitB_pos = findTransitOnBezier( observerB, venus_pos, tB_bezier_cps);
-    
+
     if (curr_transitA_pos != -1) plotA = plotPositionOnBezier(curr_transitA_pos, tA_bezier_cps);
     if (curr_transitB_pos != -1) plotB = plotPositionOnBezier(curr_transitB_pos, tB_bezier_cps);
   }
-    
+
   // draw points of View bg
   graphics.setStroke(pen_solid);
   if (plotB != null) {
@@ -345,7 +412,7 @@ void drawVenus() {
     stroke(127, 0, 255);
     line(venus_pos.x, venus_pos.y, plotA.x, plotA.y);
   }
-  
+
   if (plotA != null && plotB !=null) {
     stroke(255, 0, 0);
     graphics.setStroke(pen_dashed);
@@ -359,18 +426,19 @@ void drawVenus() {
   graphics.setStroke(pen_orbit);
   bezier(orb_PtA.x, orb_PtA.y, orb_PtA_ctrl.x, orb_PtA_ctrl.y, orb_PtB_ctrl.x, orb_PtB_ctrl.y, orb_PtB.x, orb_PtB.y);
   bezier(orb2_PtA.x, orb2_PtA.y, orb2_PtA_ctrl.x, orb2_PtA_ctrl.y, orb2_PtB_ctrl.x, orb2_PtB_ctrl.y, orb2_PtB.x, orb2_PtB.y);
-  
+
   //draw venus 
   fill(33, 209, 255, 255);
   stroke(bg);
   float scaled_dia;
-  
+
   if (orbitLeft) {
     scaled_dia = venusDia-30 + (curr_venusT*60);
-  } else {
+  } 
+  else {
     scaled_dia = venusDia-30 + ((1-curr_venusT)*60);
   }
-  
+
   ellipse(venus_pos.x, venus_pos.y, scaled_dia, scaled_dia);
   // draw points of View fg
   graphics.setStroke(pen_solid);
@@ -391,8 +459,8 @@ void drawSun() {
   float[] sunMarkerA_pos_start = plotPosOnCircle(sunX, sunY, sunR, tilt + (((markerA_angle/3) - axis_rotation) - 0.2) + PI );
   float[] sunMarkerA_pos_end = plotPosOnCircle(sunX, sunY, sunR, tilt + (-(markerA_angle/3) - axis_rotation) + 0.2 );  
 
-  float[] sunMarkerB_pos_start = plotPosOnCircle(sunX, sunY, sunR, tilt + (((markerB_angle/6) - axis_rotation) + 0.1) + PI );
-  float[] sunMarkerB_pos_end = plotPosOnCircle(sunX, sunY, sunR, tilt + (-(markerB_angle/6) - axis_rotation) - 0.1 );
+  float[] sunMarkerB_pos_start = plotPosOnCircle(sunX, sunY, sunR, tilt + (((markerB_angle/8) - axis_rotation) + 0.1) + PI );
+  float[] sunMarkerB_pos_end = plotPosOnCircle(sunX, sunY, sunR, tilt + (-(markerB_angle/8) - axis_rotation) - 0.1 );
 
   trackA_start.x = sunMarkerA_pos_start[0];
   trackA_start.y = sunMarkerA_pos_start[1];
@@ -406,18 +474,15 @@ void drawSun() {
   trackB_end.x = sunMarkerB_pos_end[0];
   trackB_end.y = sunMarkerB_pos_end[1];
 
+  shapeMode(CENTER);
+  shape(sun_gfx, sunX, sunY, sunR * 3.8, sunR * 3.8);
+
   //draw bg
   graphics.setStroke(pen_solid);
   fill(255);
-  noStroke();  
+  //stroke(bg);  
+  noStroke();
   ellipse(sunX, sunY, sunR * 2, sunR * 2);
-
-  //draw axis markers
-  noFill();
-  stroke(255);
-  graphics.setStroke(pen_solid);
-  line(sunX, sunY-sunR + 5, sunX, sunY-sunR-10);
-  line(sunX, sunY+sunR+1, sunX, sunY+sunR+8);
 
   //draw transit lines
   stroke(bg);
@@ -470,30 +535,27 @@ void drawSun() {
   //markers
   /*
   drawMarker(trackA_start.x, trackA_start.y, 5);
-  drawMarker(trackB_start.x, trackB_start.y, 5);
+   drawMarker(trackB_start.x, trackB_start.y, 5);
+   
+   drawMarker(trackA_end.x, trackA_end.y, 4);
+   drawMarker(trackB_end.x, trackB_end.y, 4);
+   */
 
-  drawMarker(trackA_end.x, trackA_end.y, 4);
-  drawMarker(trackB_end.x, trackB_end.y, 4);
-  */
-  
   float last_BX = bezierPoint(tB_srt.x, tB_srt_ctrl.x, tB_end_ctrl.x, tB_end.x, last_B_t);
   float last_BY = bezierPoint(tB_srt.y, tB_srt_ctrl.y, tB_end_ctrl.y, tB_end.y, last_B_t);
   drawMarker(last_BX, last_BY, 10);
-  
+
   float last_AX = bezierPoint(tA_srt.x, tA_srt_ctrl.x, tA_end_ctrl.x, tA_end.x, last_A_t);
   float last_AY = bezierPoint(tA_srt.y, tA_srt_ctrl.y, tA_end_ctrl.y, tA_end.y, last_A_t);
   drawMarker(last_AX, last_AY, 10);
-  
+
   float first_BX = bezierPoint(tB_srt.x, tB_srt_ctrl.x, tB_end_ctrl.x, tB_end.x, first_B_t);
   float first_BY = bezierPoint(tB_srt.y, tB_srt_ctrl.y, tB_end_ctrl.y, tB_end.y, first_B_t);
   drawMarker(first_BX, first_BY, 10);
-  
+
   float first_AX = bezierPoint(tA_srt.x, tA_srt_ctrl.x, tA_end_ctrl.x, tA_end.x, first_A_t);
   float first_AY = bezierPoint(tA_srt.y, tA_srt_ctrl.y, tA_end_ctrl.y, tA_end.y, first_A_t);
   drawMarker(first_AX, first_AY, 10);
-}
-
-void drawTransitZone() {
 }
 
 void drawEarth() {
@@ -544,8 +606,13 @@ void drawEarth() {
   stroke(255);  
   ellipse(globeX - (globeR), globeY - (globeR), globeR * 2, globeR * 2);
   ellipseMode(CENTER);
+
+  shapeMode(CENTER);
+  shape(earth_gfx, globeX, globeY, (globeR * 3.02), (globeR * 3.02) );
+
   //draw equator
   stroke(200);
+  noFill();
   graphics.setStroke(pen_dotted);
   arc(globeX, globeY, globeR * 2, (globeR * 2) * globe_tilt_ratio, 0, PI);
 
@@ -569,19 +636,19 @@ void drawEarth() {
 }
 
 /*static public void main(String args[]) {
-  Frame frame = new Frame("testing");
-  frame.setUndecorated(true);
-  // The name "sketch_name" must match the name of your program
-  PApplet applet = new howFarIsTheSun();
-  frame.add(applet);
+ Frame frame = new Frame("testing");
+ frame.setUndecorated(true);
+ // The name "sketch_name" must match the name of your program
+ PApplet applet = new howFarIsTheSun();
+ frame.add(applet);
+ 
+ frame.setBounds(0, 0, 2732, 768); 
+ frame.setVisible(true);
+ 
+ applet.init();
+ }*/
 
-  frame.setBounds(0, 0, 2732, 768); 
-  frame.setVisible(true);
-
-  applet.init();
-}*/
-
-public void init(){
+public void init() {
   frame.removeNotify();
   frame.setUndecorated(true);
   frame.addNotify();
@@ -639,13 +706,14 @@ float plotTransitExtremesOnBezier(PVector observerPos, PVector[] transitBezier, 
   PVector curveEndPos = transitBezier[3];
   float arc_rad = PVector.dist(observerPos, curveEndPos) + 200;
   float ang;
-  
-  if (firstExtreme){
+
+  if (firstExtreme) {
     ang = 1;
-  } else {
+  } 
+  else {
     ang = 0;
   }
-  
+
   PVector scan = new PVector();
   float[] lineAsArray;
   float[] bezierAsArray;
@@ -656,31 +724,38 @@ float plotTransitExtremesOnBezier(PVector observerPos, PVector[] transitBezier, 
   while (ang < PI) {
     loops++;
     float this_ang;
-    if (firstExtreme){
+    if (firstExtreme) {
       this_ang = 0 + ang;
-    } else {
+    } 
+    else {
       this_ang = 2 - ang;
     }
     scan = plotVectorOnCircle(observerPos.x, observerPos.y, arc_rad, this_ang);
-    lineAsArray =  new float[] { observerPos.x, observerPos.y, scan.x, scan.y };
-    bezierAsArray = new float[] { transitBezier[0].x, transitBezier[0].y, transitBezier[1].x, transitBezier[1].y, transitBezier[2].x, transitBezier[2].y, transitBezier[3].x, transitBezier[3].y };
+    lineAsArray =  new float[] { 
+      observerPos.x, observerPos.y, scan.x, scan.y
+    };
+    bezierAsArray = new float[] { 
+      transitBezier[0].x, transitBezier[0].y, transitBezier[1].x, transitBezier[1].y, transitBezier[2].x, transitBezier[2].y, transitBezier[3].x, transitBezier[3].y
+    };
     intersections = intersectionLineBezier( lineAsArray, bezierAsArray );
-    
+
     if (intersections.length > 0) {
       result = intersections[intersections.length -1];
-      
+
       located = true;
       break;
-    } else {
+    } 
+    else {
       ang += 0.001;
     }
   }
-  
+
   if (located) {
     println(loops);
     return result;
-  } else {
-    
+  } 
+  else {
+
     println("COULDNT FIND AN INTERSECTION - RETURNING NULL");
     return -1;
   }
